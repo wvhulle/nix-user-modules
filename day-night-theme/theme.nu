@@ -3,15 +3,15 @@
 # Universal theme switching module for day/night theme management
 
 # Helper to list items from directories
-def list_from_dirs [dirs: list<string>, filter?: closure] {
-  $dirs 
+def list_from_dirs [dirs: list<string> filter?: closure] {
+  $dirs
   | where {|dir| $dir | path exists }
-  | each {|dir| 
-      try {
-        let items = ls $dir | where type == dir | get name | path basename
-        if $filter == null { $items } else { $items | where $filter }
-      } catch { [] }
-    }
+  | each {|dir|
+    try {
+      let items = ls $dir | where type == dir | get name | path basename
+      if $filter == null { $items } else { $items | where $filter }
+    } catch { [] }
+  }
   | flatten
   | uniq
   | sort
@@ -38,18 +38,18 @@ def complete_cursor_themes [] {
 # Completion function for Plasma look-and-feel packages
 def complete_plasma_lookandfeel [] {
   let result = do { ^plasma-apply-lookandfeel --list } | complete
-  
+
   if $result.exit_code == 0 {
     $result.stdout | lines | each {|line| $line | str trim } | where {|x| $x != "" }
   } else {
-    ["org.kde.breeze.desktop", "org.kde.breezetwilight.desktop", "org.kde.breezedark.desktop"]
+    ["org.kde.breeze.desktop" "org.kde.breezetwilight.desktop" "org.kde.breezedark.desktop"]
   }
 }
 
 # Completion function for Plasma color schemes
 def complete_plasma_colorschemes [] {
   let result = do { ^plasma-apply-colorscheme --list-schemes } | complete
-  
+
   if $result.exit_code == 0 {
     $result.stdout
     | lines
@@ -57,19 +57,19 @@ def complete_plasma_colorschemes [] {
     | each {|line| $line | str trim | str replace --regex '^\* ' '' | str replace --regex ' \(current color scheme\)$' '' }
     | where {|x| $x != "" }
   } else {
-    ["BreezeLight", "BreezeDark", "BreezeClassic"]
+    ["BreezeLight" "BreezeDark" "BreezeClassic"]
   }
 }
 
 # Completion function for Konsole themes
 def complete_konsole_themes [] {
-  [("~/.local/share/konsole" | path expand), "/run/current-system/sw/share/konsole"]
+  [("~/.local/share/konsole" | path expand) "/run/current-system/sw/share/konsole"]
   | where {|dir| $dir | path exists }
   | each {|dir|
-      try {
-        ls $dir | where name =~ '\.profile$' | get name | path basename | str replace '.profile' ''
-      } catch { [] }
-    }
+    try {
+      ls $dir | where name =~ '\.profile$' | get name | path basename | str replace '.profile' ''
+    } catch { [] }
+  }
   | flatten
   | uniq
   | sort
@@ -81,15 +81,15 @@ def run_theme_command [
   command: closure
 ] {
   print -e $"Theme: ($name)"
-  
+
   let result = do $command | complete
-  
+
   if $result.exit_code != 0 {
     print -e $"Theme: Failed - ($name)"
     print -e $"Error: ($result.stderr)"
-    error make { msg: $"Failed: ($name)" }
+    error make {msg: $"Failed: ($name)"}
   }
-  
+
   print -e $"Theme: Success - ($name)"
 }
 
@@ -131,17 +131,17 @@ export def "theme plasma" [
     complete_plasma_lookandfeel | print
     return
   }
-  
+
   if $colorscheme == null {
     print "Available Plasma color schemes:"
     complete_plasma_colorschemes | print
     return
   }
-  
+
   run_theme_command $"Applying lookandfeel ($lookandfeel)" {
     ^plasma-apply-lookandfeel --apply $lookandfeel
   }
-  
+
   run_theme_command $"Applying colorscheme ($colorscheme)" {
     ^plasma-apply-colorscheme $colorscheme
   }
@@ -173,7 +173,7 @@ def main [...args] {
     print "  konsole [name]          - Switch or list Konsole themes"
     return
   }
-  
+
   let script_path = $env.CURRENT_FILE
   nu -c $'use "($script_path)" *; theme ($args | str join " ")'
 }
