@@ -87,12 +87,14 @@ let
     # Haskell
     haskell.haskell
     justusadam.language-haskell
-
+    vadimcn.vscode-lldb
     arrterian.nix-env-selector
     christian-kohler.path-intellisense
     ecmel.vscode-html-css
     fabiospampinato.vscode-open-in-github
     file-icons.file-icons
+    vscode-icons-team.vscode-icons
+    pkief.material-icon-theme
     formulahendry.auto-rename-tag
     github.copilot
     github.copilot-chat
@@ -148,13 +150,13 @@ let
     "window.autoDetectColorScheme" = true;
     "window.titleBarStyle" = "native";
     "window.commandCenter" = false;
-
+    "window.menuBarVisibility" = "toggle";
     "workbench.list.smoothScrolling" = true;
     "workbench.preferredDarkColorTheme" = "GitHub Dark Default";
     "workbench.preferredLightColorTheme" = "GitHub Light Default";
     "workbench.editor.enablePreview" = false;
     "workbench.editor.highlightModifiedTabs" = true;
-    "workbench.iconTheme" = "file-icons-colourless";
+    "workbench.iconTheme" = "vscode-icons";
     "workbench.layoutControl.enabled" = false;
     "workbench.navigationControl.enabled" = false;
   };

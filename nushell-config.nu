@@ -1,22 +1,4 @@
 # Consolidated Nushell Configuration
-# All custom commands and configuration in one file
-
-# =============================================================================
-# COMPLETION COMMANDS
-# =============================================================================
-
-# Simple carapace external completer following official nushell documentation
-# https://www.nushell.sh/book/custom_completions.html
-export def setup-carapace-completer [] {
-  let carapace_completer = {|spans|
-    carapace $spans.0 nushell ...$spans | from json
-  }
-  $carapace_completer
-}
-
-# =============================================================================
-# NOTIFICATION COMMANDS
-# =============================================================================
 
 # Check if command is interactive and shouldn't trigger notifications
 export def is-interactive-command [command: string] {
@@ -80,13 +62,6 @@ export def refresh-theme [] {
   }
 }
 
-# =============================================================================
-# MAIN CONFIGURATION SETUP
-# =============================================================================
-
-# Initialize external completer
-let external_completer = (setup-carapace-completer)
-
 # Main nushell configuration
 $env.config = (
   $env.config | merge {
@@ -100,13 +75,6 @@ $env.config = (
           notify-long-command
         }
       ]
-    }
-    completions: {
-      external: {
-        enable: true
-        max_results: 100
-        completer: $external_completer
-      }
     }
   }
 )

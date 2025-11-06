@@ -120,6 +120,8 @@
         "Use extension traits to group together related methods that are always called on the same (first) argument type."
         "Fix a large portion of clippy problems automatically with `cargo clippy --all-targets --fix --allow-dirty`."
         "Instead of adding comments that become stale, add logging with the external `log` crate and its macros."
+        "Do not create unit structs."
+        "Don't make internal modules public."
       ];
     };
 
