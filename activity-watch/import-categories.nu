@@ -9,20 +9,18 @@ def main [
 ] {
   let server_url = $"http://localhost:($port)"
 
-  print "ActivityWatch Categories Import"
-  print $"Server: ($server_url)"
-  print $"Categories file: ($categories_file)"
+  print $"ActivityWatch Categories Import\nServer: ($server_url)\nCategories file: ($categories_file)\n"
 
   # Check if server is running
-  try {
-    let status = (curl -s $"($server_url)/api/0/info" | from json)
-    print $"Server version: ($status.version)"
+  let status = try {
+    http get $"($server_url)/api/0/info"
   } catch {
     print "Error: ActivityWatch server is not running or not accessible"
     exit 1
   }
+  print $"Server version: ($status.version)"
 
-  # Check if categories file exists
+  # Check if categories file exists and read it
   if not ($categories_file | path exists) {
     print $"Error: Categories file not found: ($categories_file)"
     exit 1
@@ -32,20 +30,20 @@ def main [
   let new_categories = try {
     open $categories_file
   } catch {
-    print $"Error: Failed to read categories file"
+    print "Error: Failed to read categories file"
     exit 1
   }
 
+  # Import categories
   print "Updating settings with new categories..."
-  # The frontend expects 'classes' field, not 'rules'
-
   try {
-    $new_categories | to json | curl -s -X POST -H "Content-Type: application/json" -d @- $"($server_url)/api/0/settings/classes" | ignore
-    print "✓ Categories updated successfully!"
+    http post --content-type application/json $"($server_url)/api/0/settings/classes" $new_categories | ignore
 
-    # Verify import by checking count
-    let imported = (curl -s $"($server_url)/api/0/settings/classes" | from json)
-    print $"✓ Total categories imported: ($imported.classes | length)"
+    # Verify import
+    let imported = http get $"($server_url)/api/0/settings/classes"
+    let count = $imported.classes | length
+
+    print $"✓ Categories updated successfully!\n✓ Total categories imported: ($count)"
   } catch {
     print "Error: Failed to update settings"
     exit 1
