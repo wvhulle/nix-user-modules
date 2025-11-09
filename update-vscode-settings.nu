@@ -3,7 +3,7 @@
 # Update VSCode settings.json with writable file from Nix configuration
 # This script is used by Home Manager activation to create/update the settings file
 
-def main [source_file: string] {
+def main [source_file: path] {
   let settings_file = $"($env.HOME)/.config/Code/User/settings.json"
 
   # Create directory if it doesn't exist

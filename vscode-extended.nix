@@ -58,12 +58,6 @@ let
       sha256 = "uJGCCvg6fj2He1HtKXC2XQLXYp0vTl4hQgVU9o5Uz5Q=";
     }
     {
-      name = "aw-watcher-vscode";
-      publisher = "activitywatch";
-      version = "0.5.0";
-      sha256 = "OrdIhgNXpEbLXYVJAx/jpt2c6Qa5jf8FNxqrbu5FfFs=";
-    }
-    {
       name = "nix-ide";
       publisher = "jnoortheen";
       version = "0.4.24";
