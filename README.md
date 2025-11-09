@@ -9,16 +9,16 @@ To import a custom user module in your NixOS configuration:
 1. Clone this project somewhere (or use Nix builtins)
 2. Import and enable sub-modules in your NixOS configuration:
 
-    ```nix
-    { config, pkgs, ... }:
-    {
-        imports = [
-            ./user-modules/vscode-extended.nix
-        ];
+   ```nix
+   { config, pkgs, ... }:
+   {
+       imports = [
+           ./user-modules/vscode-extended.nix
+       ];
 
-        programs.vscode-extended.enable = true;
-    }
-    ```
+       programs.vscode-extended.enable = true;
+   }
+   ```
 
 Then run `sudo nixos-rebuild switch` (or a home-manager command) to write settings declaratively to your home directory.
 
