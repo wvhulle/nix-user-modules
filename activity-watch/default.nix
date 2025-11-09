@@ -177,19 +177,15 @@ in
           ];
           PartOf = [ "graphical-session.target" ];
           Wants = lib.mkIf cfg.server.enable [ "activitywatch-server.service" ];
+          StartLimitIntervalSec = "300";
+          StartLimitBurst = "5";
         };
 
         Service = {
           Type = "simple";
           ExecStart = "${pkgs.awatcher}/bin/awatcher";
-          Restart = "always";
-          RestartSec = "5";
-          # Keep trying to restart even after failures
-          RestartForceExitStatus = [
-            1
-            2
-            8
-          ];
+          Restart = "on-failure";
+          RestartSec = "10";
         };
 
         Install = {
