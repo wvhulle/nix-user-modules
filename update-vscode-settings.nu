@@ -6,10 +6,8 @@
 def main [source_file: path] {
   let settings_file = $"($env.HOME)/.config/Code/User/settings.json"
 
-  # Create directory if it doesn't exist
   mkdir ($settings_file | path dirname)
 
-  # Determine if we should update the file
   let should_update = (
     not ($settings_file | path exists)
     or ($settings_file | path type) == "symlink"

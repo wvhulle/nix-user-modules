@@ -1,17 +1,13 @@
 #!/usr/bin/env nu
 
-# ActivityWatch Categories Import Script
-# Clears existing categories and imports new ones from the provided JSON file
-
 def main [
-  categories_file: path # Path to the categories JSON file
-  --port (-p): int = 5600 # ActivityWatch server port
+  categories_file: path
+  --port (-p): int = 5600
 ] {
   let server_url = $"http://localhost:($port)"
 
   print $"ActivityWatch Categories Import\nServer: ($server_url)\nCategories file: ($categories_file)\n"
 
-  # Check if server is running
   let status = try {
     http get $"($server_url)/api/0/info"
   } catch {
@@ -20,7 +16,6 @@ def main [
   }
   print $"Server version: ($status.version)"
 
-  # Check if categories file exists and read it
   if not ($categories_file | path exists) {
     print $"Error: Categories file not found: ($categories_file)"
     exit 1
@@ -34,12 +29,10 @@ def main [
     exit 1
   }
 
-  # Import categories
   print "Updating settings with new categories..."
   try {
     http post --content-type application/json $"($server_url)/api/0/settings/classes" $new_categories | ignore
 
-    # Verify import
     let imported = http get $"($server_url)/api/0/settings/classes"
     let count = $imported.classes | length
 

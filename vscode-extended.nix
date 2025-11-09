@@ -1,5 +1,3 @@
-# VSCode Module with AI Agent Integration
-# Provides comprehensive VSCode configuration with shared defaults and user-specific overrides
 {
   lib,
   config,
@@ -78,7 +76,6 @@ let
   ];
 
   defaultNixpkgsExtensions = with unstable.vscode-extensions; [
-    # Haskell
     haskell.haskell
     justusadam.language-haskell
     vadimcn.vscode-lldb
@@ -113,7 +110,6 @@ let
     myriad-dreamin.tinymist
   ];
 
-  # Settings groups
   languageFormatters = {
     "[css]" = mkFormatter "vscode.css-language-features";
     "[html]" = mkFormatter "vscode.html-language-features";
@@ -407,8 +403,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Warn if running in KDE without GNOME Keyring enabled
-    # VS Code (Electron) needs GNOME Keyring's Secret Service API even in KDE
     warnings =
       lib.optional
         (
@@ -466,7 +460,6 @@ in
           // (if cfg.enableAutoApproval then copilotAutoApprovalSettings.content else { })
           // cfg.additionalUserSettings;
 
-        # Use pkgs.formats.json to generate pretty-printed JSON
         jsonFormat = pkgs.formats.json { };
         settingsJson = jsonFormat.generate "vscode-settings.json" mergedSettings;
       in

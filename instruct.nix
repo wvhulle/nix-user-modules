@@ -1,7 +1,4 @@
-# AI Agent Instructions Data
-# Base instructions and language-specific instructions for AI coding assistants
 {
-  # Base instructions for all AI agents (in order of importance)
   baseInstructions = [
     "Don't be sycophantic and tell how good my ideas are. I may have flawed ideas."
     "I am not interested in refactoring or summary documents."
@@ -24,7 +21,6 @@
     "Run SystemD commands with `--no-pager`."
   ];
 
-  # Language-specific instructions
   languages = {
     lean = {
       enable = false;

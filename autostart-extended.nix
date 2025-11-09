@@ -1,5 +1,3 @@
-# Extended Autostart configuration module
-# Provides utilities for managing XDG autostart entries
 {
   config,
   lib,

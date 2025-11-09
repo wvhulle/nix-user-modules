@@ -112,7 +112,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Install core ActivityWatch packages
     home.packages = with pkgs; [
       activitywatch
       aw-watcher-afk
@@ -120,9 +119,7 @@ in
       awatcher
     ];
 
-    # User systemd services for ActivityWatch components
     systemd.user.services = {
-      # ActivityWatch server
       activitywatch-server = lib.mkIf cfg.server.enable {
         Unit = {
           Description = "ActivityWatch server";
@@ -143,7 +140,6 @@ in
         };
       };
 
-      # Categories import service
       activitywatch-import-categories =
         lib.mkIf (cfg.server.enable && cfg.importCategories && cfg.categories != { })
           {
@@ -167,7 +163,6 @@ in
             };
           };
 
-      # Wayland window title watcher
       activitywatch-watcher-window = lib.mkIf cfg.watchers.window {
         Unit = {
           Description = "ActivityWatch Wayland window title watcher";
@@ -193,7 +188,6 @@ in
         };
       };
 
-      # AFK watcher
       activitywatch-watcher-afk = lib.mkIf cfg.watchers.afk {
         Unit = {
           Description = "ActivityWatch AFK watcher";
@@ -218,7 +212,6 @@ in
       };
     };
 
-    # VSCode extension configuration
     programs.vscode-extended = lib.mkIf cfg.watchers.vscode {
       additionalMarketplaceExtensions = [
         {

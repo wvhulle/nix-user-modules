@@ -1,5 +1,3 @@
-# Extended Git configuration module
-# Provides additional configuration options beyond standard home-manager programs.git
 {
   config,
   lib,

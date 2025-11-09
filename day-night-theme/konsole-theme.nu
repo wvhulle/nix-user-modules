@@ -1,9 +1,6 @@
-# Konsole Theme Switcher
-# A nushell package for switching Konsole color profiles
-
 # Switch Konsole profile for all running instances
 export def main [
-  profile_name?: string # The profile name to switch to (e.g., "Dark", "Light")
+  profile_name?: string
 ] {
   if ($profile_name | is-empty) {
     print "Usage: konsole-theme-nu <profile>"
@@ -15,9 +12,8 @@ export def main [
   }
 }
 
-# Set Konsole profile for all running instances and sessions
 export def set-konsole-profile [
-  profile_name: string # The profile name to switch to
+  profile_name: string
 ] {
   print $"Switching Konsole to profile: ($profile_name)"
 

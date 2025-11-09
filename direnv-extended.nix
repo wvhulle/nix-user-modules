@@ -1,5 +1,3 @@
-# Extended Direnv configuration module
-# Provides additional configuration options beyond standard home-manager programs.direnv
 {
   config,
   lib,

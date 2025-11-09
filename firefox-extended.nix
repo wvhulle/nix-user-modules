@@ -1,5 +1,3 @@
-# Extended Firefox configuration module
-# Provides additional configuration options beyond standard home-manager programs.firefox
 {
   config,
   lib,
@@ -94,7 +92,7 @@ let
     "browser.tabs.warnOnClose" = false;
     "browser.tabs.warnOnCloseOtherTabs" = false;
     "browser.sessionstore.resume_from_crash" = true;
-    "browser.startup.page" = 3; # Restore previous session
+    "browser.startup.page" = 3;
     "signon.rememberSignons" = true;
   };
 in
@@ -216,12 +214,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Set Firefox as default browser and ensure it's used by CLI tools
     systemd.user.sessionVariables = {
       BROWSER = "firefox";
     };
 
-    # Configure gh to use Firefox
     programs.gh.settings.browser = "firefox";
 
     programs.firefox = {
@@ -252,7 +248,7 @@ in
 
           settings = lib.mkMerge [
             (lib.optionalAttrs cfg.enablePrivacyPresets defaultPrivacyPrefs)
-            (lib.optionalAttrs cfg.enableUxPresets (lib.mapAttrs (_: lib.mkDefault) defaultUxPrefs)) # Use mkDefault for UX presets
+            (lib.optionalAttrs cfg.enableUxPresets (lib.mapAttrs (_: lib.mkDefault) defaultUxPrefs))
             (lib.optionalAttrs cfg.preserveUserData {
               "privacy.clearOnShutdown.cache" = false;
               "privacy.clearOnShutdown.cookies" = false;
@@ -267,7 +263,7 @@ in
               "privacy.cpd.history" = false;
               "privacy.cpd.sessions" = false;
             })
-            cfg.additionalPreferences # User preferences can now override defaults
+            cfg.additionalPreferences
           ];
         }
         (lib.optionalAttrs (cfg.bookmarks != null) (

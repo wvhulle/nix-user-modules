@@ -1,5 +1,3 @@
-# Terminal Command Auto-Approval Data
-# Configuration for which terminal commands AI agents can execute without manual approval
 {
   terminalCommands = {
     git-read = {

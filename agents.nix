@@ -1,5 +1,3 @@
-# Shared AI Agent Configuration
-# This module provides common configuration for AI coding assistants (Claude, GitHub Copilot, etc.)
 {
   lib,
   config,

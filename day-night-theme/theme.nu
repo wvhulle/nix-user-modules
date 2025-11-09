@@ -1,7 +1,5 @@
 #!/usr/bin/env nu
 
-# Universal theme switching module for day/night theme management
-
 # Helper to list items from directories
 def list_from_dirs [dirs: list<string> filter?: closure] {
   $dirs

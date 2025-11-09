@@ -1,5 +1,3 @@
-# Extended Nushell configuration module
-# Provides additional configuration options beyond standard home-manager programs.nushell
 {
   config,
   lib,
@@ -10,7 +8,6 @@
 let
   cfg = config.programs.nushell-extended;
 
-  # Single consolidated configuration file
   consolidatedConfigFile = "nushell-config.nu";
 in
 {
@@ -64,7 +61,6 @@ in
 
       extraEnv =
         let
-          # Merge all environment variable sources
           allEnvVars =
             cfg.environmentVariables
             // (lib.optionalAttrs cfg.enableCommonDefaults {
@@ -72,7 +68,7 @@ in
               SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
               NU_PLUGIN_DIRS = "[\"${config.home.homeDirectory}/.cargo/bin\"]";
             })
-            // config.home.sessionVariables; # Include home-manager session variables
+            // config.home.sessionVariables;
         in
         lib.concatStringsSep "\n" (
           lib.mapAttrsToList (name: value: "$env.${name} = \"${value}\"") allEnvVars

@@ -6,7 +6,6 @@ let
     path: name: value: depth: index:
     let
       currentPath = path ++ [ name ];
-      # Generate a simple unique ID based on depth and index
       categoryId = depth * 1000 + index;
 
       currentCategory = {

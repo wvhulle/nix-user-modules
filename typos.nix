@@ -39,11 +39,8 @@
 let
   cfg = config.programs.typos;
 
-  # Use the built-in TOML format generator
   tomlFormat = pkgs.formats.toml { };
 
-  # Build the typos configuration as a Nix attribute set
-  # Separates [files] and [default] sections, supports both extend-words and extend-identifiers
   typosConfig = {
     files.extend-exclude = cfg.excludePatterns;
 
@@ -226,11 +223,10 @@ in
   config = lib.mkIf cfg.enable {
     # Install typos and typos-lsp
     home.packages = with pkgs; [
-      typos # Command-line spell checker
-      typos-lsp # LSP server for editor integration
+      typos
+      typos-lsp
     ];
 
-    # Generate and link the typos configuration file
     home.file.".typos.toml" = lib.mkMerge [
       { source = typosConfigFile; }
       (lib.mkIf (cfg.additionalConfig != "") {

@@ -1,5 +1,3 @@
-# Extended Brightness configuration module
-# Provides wluma time-based brightness adjustment
 {
   config,
   lib,

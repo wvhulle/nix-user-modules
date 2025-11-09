@@ -123,27 +123,22 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Use home-manager's built-in syncthing service but with our extended configuration
     services.syncthing = {
       enable = true;
 
-      # Configuration
       tray = lib.mkDefault false;
 
-      # Override the default extraOptions to use our custom settings
       extraOptions = [
         "-gui-address=${cfg.guiAddress}"
         "-home=${cfg.configDir}"
       ];
     };
 
-    # Create directories
     home.file = {
       "${lib.removePrefix config.home.homeDirectory cfg.dataDir}/.keep".text = "";
       "${lib.removePrefix config.home.homeDirectory cfg.configDir}/.keep".text = "";
     };
 
-    # Additional configuration for folders and devices can be managed through the Syncthing GUI
     # or by directly editing the config.xml file after initial setup
   };
 }

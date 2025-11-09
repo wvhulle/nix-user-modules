@@ -1,5 +1,3 @@
-# Extended Helix configuration module
-# Provides additional configuration options beyond standard home-manager programs.helix
 {
   config,
   lib,
