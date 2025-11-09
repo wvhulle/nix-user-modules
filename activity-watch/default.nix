@@ -9,46 +9,15 @@ let
   cfg = config.programs.activitywatch;
   defaultCategories = import ./categories.nix;
 
-  flattenCategories =
-    categories:
-    lib.mapAttrsToList (
-      name: value:
-      {
-        name = [ name ];
-        rule = {
-          type = if (value.regex or null) != null then "regex" else "none";
-        }
-        // lib.optionalAttrs ((value.regex or null) != null) { inherit (value) regex; };
-      }
-      // lib.optionalAttrs ((value.keywords or null) != null) {
-        rule = {
-          type = "regex";
-          regex = lib.concatStringsSep "|" value.keywords;
-        };
-      }
-      // lib.optionalAttrs ((value.color or null) != null) { data = { inherit (value) color; }; }
-      // lib.optionalAttrs ((value.score or null) != null) { data.score = value.score; }
-      // lib.optionalAttrs ((value.children or null) != null) {
-        children = lib.flatten (
-          lib.mapAttrsToList (
-            childName: childValue:
-            let
-              childCategory = flattenCategories { ${childName} = childValue; };
-            in
-            map (child: child // { name = [ name ] ++ child.name; }) childCategory
-          ) value.children
-        );
-      }
-    ) categories;
+  flattenCategories = import ./flatten.nix { inherit lib; };
 
   categoriesJson = pkgs.writeText "categories.json" (
-    builtins.toJSON (lib.flatten (flattenCategories cfg.categories))
+    builtins.toJSON (flattenCategories cfg.categories)
   );
 
-  categoriesImportScript = pkgs.writers.writeNuBin "aw-import-categories" ''
-    ^curl -X POST -H "Content-Type: application/json" -d $"@${categoriesJson}" $"http://localhost:${toString cfg.server.port}/api/0/settings/classes"
-    print "Categories imported successfully!"
-  '';
+  categoriesImportScript = pkgs.writers.writeNuBin "aw-import-categories" (
+    builtins.readFile ./import-categories.nu
+  );
 
   configFile = pkgs.writeText "aw-server-rust-config.toml" ''
     cors = ${builtins.toJSON cfg.server.corsOrigins}
@@ -188,7 +157,7 @@ in
             Service = {
               Type = "oneshot";
               RemainAfterExit = false;
-              ExecStart = "${categoriesImportScript}/bin/aw-import-categories";
+              ExecStart = "${categoriesImportScript}/bin/aw-import-categories ${categoriesJson} --port ${toString cfg.server.port}";
               Restart = "on-failure";
               RestartSec = "10";
             };
