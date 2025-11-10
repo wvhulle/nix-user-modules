@@ -73,6 +73,12 @@ let
       version = "0.10.0";
       sha256 = "0mmnylc7fbf6239m9fvplk8msns8di0v4bgb7wf0ly21p0g9acjr";
     }
+    {
+      name = "nu-lint";
+      publisher = "WillemVanhulle";
+      version = "0.0.5";
+      sha256 = "sha256-p7WWiRPGuMx44fl1tcRsaYQJLhy+Tsay4SBAVGUkMLk=";
+    }
   ];
 
   defaultNixpkgsExtensions = with unstable.vscode-extensions; [
