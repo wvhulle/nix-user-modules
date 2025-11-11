@@ -76,8 +76,8 @@ let
     {
       name = "nu-lint";
       publisher = "WillemVanhulle";
-      version = "0.0.5";
-      sha256 = "sha256-p7WWiRPGuMx44fl1tcRsaYQJLhy+Tsay4SBAVGUkMLk=";
+      version = "0.0.6";
+      sha256 = "sha256-ktPdF5+fSIbKL02TYwJYnJbT0fTn4ipNdw6b3ZBn1EI=";
     }
   ];
 

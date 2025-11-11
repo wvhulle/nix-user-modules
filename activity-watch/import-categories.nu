@@ -34,7 +34,7 @@ def main [
     http post --content-type application/json $"($server_url)/api/0/settings/classes" $new_categories | ignore
 
     let imported = http get $"($server_url)/api/0/settings/classes"
-    let count = $imported.classes | length
+    let count = $imported | length
 
     print $"✓ Categories updated successfully!\n✓ Total categories imported: ($count)"
   } catch {

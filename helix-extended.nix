@@ -20,7 +20,7 @@ in
 
     theme = lib.mkOption {
       type = lib.types.str;
-      default = "everforest_dark";
+      default = "heisenberg";
       description = "Helix theme to use";
       example = "onedark";
     };
