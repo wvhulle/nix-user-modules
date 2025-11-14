@@ -103,6 +103,12 @@ in
       default = true;
       description = "Whether to enable sensible git defaults for modern workflows";
     };
+
+    enableMergiraf = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether to enable mergiraf as the default merge strategy";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -258,8 +264,26 @@ in
           };
         })
 
+        (lib.optionalAttrs cfg.enableMergiraf {
+          merge.mergiraf = {
+            name = "mergiraf";
+            driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
+          };
+        })
+
         cfg.customConfig
       ];
+    };
+
+    # Install mergiraf package when enabled
+    home.packages = lib.optional cfg.enableMergiraf pkgs.mergiraf;
+
+    # Configure global gitattributes for mergiraf
+    home.file.".config/git/attributes" = lib.mkIf cfg.enableMergiraf {
+      text = ''
+        # Use mergiraf for all files
+        * merge=mergiraf
+      '';
     };
   };
 }
