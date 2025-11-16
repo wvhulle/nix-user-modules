@@ -19,6 +19,7 @@
     "Remove dead / unused code and inline simple functions that are just used once."
     "When you copy code from online sources, include a comment with the source URL."
     "Run SystemD commands with `--no-pager`."
+    "Never use programming language-specific words like `types`, `functions`, or `variables` in module or variable names."
   ];
 
   languages = {

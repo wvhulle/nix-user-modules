@@ -105,7 +105,6 @@ let
     tamasfe.even-better-toml
     thenuprojectcontributors.vscode-nushell-lang
     tomoki1207.pdf
-    visualstudioexptteam.vscodeintellicode
     davidanson.vscode-markdownlint
     esbenp.prettier-vscode
     dbaeumer.vscode-eslint

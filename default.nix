@@ -8,6 +8,7 @@ _: {
     ./helix-extended.nix
     ./konsole.nix
     ./nushell-extended.nix
+    ./rust-extended.nix
     ./topiary.nix
     ./typos.nix
     ./vscode-extended.nix

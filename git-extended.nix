@@ -43,8 +43,14 @@ in
 
     enableDelta = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Whether to enable delta for git diff";
+    };
+
+    enableDifftastic = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether to enable difftastic for git diff";
     };
 
     enableRepoHelpers = lib.mkOption {
@@ -133,6 +139,13 @@ in
         };
       };
 
+      difftastic = lib.mkIf cfg.enableDifftastic {
+        enable = true;
+        background = "dark";
+        color = "auto";
+        display = "side-by-side-show-both";
+      };
+
       ignores = [
         "CLAUDE.local.md"
         "TODO.md"
@@ -183,6 +196,12 @@ in
 
           core = {
             editor = "${cfg.defaultEditor}/bin/${cfg.defaultEditor.pname or cfg.defaultEditor.name}";
+          };
+
+          pager = {
+            diff = "${pkgs.difftastic}/bin/difft";
+            show = "${pkgs.difftastic}/bin/difft";
+            log = "${pkgs.difftastic}/bin/difft";
           };
 
           diff = {

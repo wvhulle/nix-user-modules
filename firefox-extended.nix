@@ -272,18 +272,21 @@ in
 
             finalBookmarks =
               if cfg.enableServerBookmarks then
-                lib.recursiveUpdate baseBookmarks {
-                  settings = lib.map (toolbar: {
-                    inherit (toolbar) name;
-                    toolbar = toolbar.toolbar or false;
-                    bookmarks = toolbar.bookmarks ++ [
-                      (generateServerBookmarks {
-                        inherit (cfg) webServices;
-                        inherit (cfg) machines;
-                        inherit (cfg) currentHostname;
-                      })
-                    ];
-                  }) baseBookmarks.settings;
+                {
+                  inherit (baseBookmarks) force;
+                  settings = lib.map (
+                    toolbar:
+                    toolbar
+                    // {
+                      bookmarks = toolbar.bookmarks ++ [
+                        (generateServerBookmarks {
+                          inherit (cfg) webServices;
+                          inherit (cfg) machines;
+                          inherit (cfg) currentHostname;
+                        })
+                      ];
+                    }
+                  ) baseBookmarks.settings;
                 }
               else
                 baseBookmarks;

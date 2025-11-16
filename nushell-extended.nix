@@ -36,6 +36,16 @@ in
       description = "Whether to enable common environment variable defaults (LC_ALL, SSH_AUTH_SOCK)";
     };
 
+    additionalPaths = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Additional paths to prepend to PATH in nushell";
+      example = [
+        "/home/user/.cargo/bin"
+        "/home/user/.local/bin"
+      ];
+    };
+
     username = lib.mkOption {
       type = lib.types.str;
       default = config.home.username;
@@ -66,13 +76,18 @@ in
             // (lib.optionalAttrs cfg.enableCommonDefaults {
               LC_ALL = "en_US.UTF-8";
               SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
-              NU_PLUGIN_DIRS = "[\"${config.home.homeDirectory}/.cargo/bin\"]";
             })
             // config.home.sessionVariables;
+
+          envVarLines = lib.mapAttrsToList (name: value: "$env.${name} = \"${value}\"") allEnvVars;
+
+          pathLines =
+            lib.optional (cfg.additionalPaths != [ ])
+              "$env.PATH = ($env.PATH | prepend [${
+                lib.concatMapStringsSep " " (p: ''"${p}"'') cfg.additionalPaths
+              }])";
         in
-        lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (name: value: "$env.${name} = \"${value}\"") allEnvVars
-        );
+        lib.concatStringsSep "\n" (envVarLines ++ pathLines);
 
       extraConfig = builtins.readFile (./${consolidatedConfigFile});
     };
