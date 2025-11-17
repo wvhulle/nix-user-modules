@@ -9,10 +9,9 @@
 let
   cfg = config.programs.solar-brightness;
 
-  brightnessScript = pkgs.writeScriptBin "solar-brightness-manager" ''
-    #!${pkgs.nushell}/bin/nu
-    ${pkgs.nushell}/bin/nu ${./solar-brightness-manager.nu} "$@"
-  '';
+  brightnessScript = pkgs.writers.writeNuBin "solar-brightness-manager" (
+    builtins.readFile ./solar-brightness-manager.nu
+  );
 in
 {
   options.programs.solar-brightness = {
