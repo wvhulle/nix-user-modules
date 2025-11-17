@@ -53,22 +53,10 @@ in
       description = "Whether to enable difftastic for git diff";
     };
 
-    enableRepoHelpers = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable repository management helpers (rerere, autosquash, etc.)";
-    };
-
     enableGitHubIntegration = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Whether to enable GitHub CLI integration for credentials";
-    };
-
-    enableDiffTools = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to configure external diff and merge tools (meld)";
     };
 
     defaultEditor = lib.mkOption {
@@ -96,18 +84,6 @@ in
         pushf = "push --force-with-lease";
         wip = "commit -m 'WIP'";
       };
-    };
-
-    customConfig = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = "Additional git configuration options";
-    };
-
-    enableSensibleDefaults = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable sensible git defaults for modern workflows";
     };
 
     enableMergiraf = lib.mkOption {
@@ -152,7 +128,7 @@ in
         "AGENTS.md"
         ".claude/"
         ".claude.md"
-
+        ".core.*"
         ".idea/"
         "*.swp"
         "*.swo"
@@ -198,19 +174,11 @@ in
             editor = "${cfg.defaultEditor}/bin/${cfg.defaultEditor.pname or cfg.defaultEditor.name}";
           };
 
-          pager = {
-            diff = "${pkgs.difftastic}/bin/difft";
-            show = "${pkgs.difftastic}/bin/difft";
-            log = "${pkgs.difftastic}/bin/difft";
-          };
-
           diff = {
             algorithm = "histogram";
             colorMoved = "default";
             mnemonicPrefix = true;
             renames = true;
-          }
-          // lib.optionalAttrs cfg.enableDiffTools {
             tool = "meld";
           };
 
@@ -239,14 +207,10 @@ in
 
             aliases = "config --get-regexp alias";
             save = "!git add -A && git commit -m 'SAVEPOINT'";
-          }
-          // lib.optionalAttrs cfg.enableDiffTools {
             meld = "!git difftool -t meld --dir-diff";
           }
           // cfg.additionalAliases;
-        }
 
-        (lib.optionalAttrs cfg.enableRepoHelpers {
           rerere = {
             enabled = true;
             autoupdate = true;
@@ -260,20 +224,18 @@ in
 
           merge = {
             conflictstyle = "zdiff3";
-          }
-          // lib.optionalAttrs cfg.enableDiffTools {
             tool = "meld";
           };
-        })
+        }
 
-        (lib.optionalAttrs cfg.enableDiffTools {
+        {
           difftool = {
             prompt = false;
             meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$REMOTE"'';
           };
 
           mergetool.meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'';
-        })
+        }
 
         (lib.optionalAttrs cfg.enableGitHubIntegration {
           credential = {
@@ -289,8 +251,6 @@ in
             driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
           };
         })
-
-        cfg.customConfig
       ];
     };
 

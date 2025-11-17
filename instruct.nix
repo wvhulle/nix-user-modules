@@ -1,30 +1,26 @@
 {
   baseInstructions = [
-    "Don't be sycophantic and tell how good my ideas are. I may have flawed ideas."
-    "I am not interested in refactoring or summary documents."
-    "Use a functional and declarative programming approach"
-    "Never comment-out or adjust tests while fixing bugs. Instead, double-check the test expectations and fix the library implementation."
-    "Don't use emojis or emoticons in comments or output"
+    "IMPORTANT: Read the @CONTRIBUTING.md file if present to see important repository-specific guidelines."
+    "IMPORTANT: Never comment-out or adjust tests while fixing bugs. Instead, double-check the test expectations and fix the library implementation."
+    "IMPORTANT: Remove useless comments and replace comments by more informative naming standards of variables."
+    "IMPORTANT: Don't tell how good my ideas are. Be a critical conversation partner."
+    "IMPORTANT: Use a functional and idiomatic programming style."
+
+    "Do not create textual summary files."
+    "Don't use emojis or emoticons in any output or documentation."
     "When a command is missing, you can use `nix-shell -p [command-nix-package] --run 'command'` for running the missing command."
-    "Only add comments when the variable or function naming is not self-explanatory."
-    "Always try to run linters with JSON output turned first to save tokens."
-    "Consider replacing comments by better variable or function names."
-    "Prevent security problems in already written and new code"
-    "Enable logging or tracing to debug difficult failing tests"
+    "Enable logging to debug difficult failing tests"
     "You should never capture or redirect stdout or stderr output unless necessary."
-    "Modify documents in-place and do not create new version with suffixes in the filename."
-    "Use sub-agents to complete tasks to require changes to unrelated files."
+    "Modify documents in-place. Do not create new version with suffixes in the filename."
     "Use custom composite `ast-grep` rules to make bulk code changes in large code bases to save time."
     "When you are done with all tasks, search the codebase for todo (case-insensitive) comments to continue with."
     "Remove dead / unused code and inline simple functions that are just used once."
     "When you copy code from online sources, include a comment with the source URL."
-    "Run SystemD commands with `--no-pager`."
-    "Never use programming language-specific words like `types`, `functions`, or `variables` in module or variable names."
   ];
 
   languages = {
     lean = {
-      enable = false;
+      enable = true;
       extensions = [ "lean" ];
       instructions = [
         "Use `lean-lsp-mcp` MCP server for goals/diagnostics when available"
@@ -74,11 +70,11 @@
       extensions = [ "typ" ];
       instructions = [
         "To debug a long Typst document, make a minimal example that reproduces the problem."
-        "Extract a small amount of images of pages from the PDF output and analyze them."
         "Modify the template instead of the user content when fixing layout issues."
         "Create reusable, general layout functions for repeated patterns."
         "Do not duplicate functionality, but improve generalisability for existing functions."
-        "Search online first whether someone else created a library for a common layout problem."
+        "New functions should take named and optional parameters where possible."
+        "Search on https://typst.app/universe/ whether someone else created a library for a common layout problem."
       ];
     };
 
@@ -89,6 +85,7 @@
         "Leverage Nushell's structured data capabilities for data manipulation."
         "Utilize built-in Nushell commands for common tasks instead of external utilities."
         "When writing scripts, prefer pipelines and data transformations over imperative loops."
+        "Run nu-lint to see style issues in Nu scripts."
       ];
     };
 
@@ -119,6 +116,8 @@
         "Instead of adding comments that become stale, add logging with the external `log` crate and its macros."
         "Do not create unit structs."
         "Don't make internal modules public."
+        "Never use programming language-specific words like `types`, `trait`, `functions`, or `variables` in module or variable names."
+
       ];
     };
 

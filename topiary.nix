@@ -1,3 +1,4 @@
+# Don't use this with a manual `cargo install tiopiary` as it will cause conflicts.
 {
   config,
   lib,
