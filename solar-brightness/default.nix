@@ -1,4 +1,4 @@
-# Dell U4323QE monitor time-based brightness control
+# Solar-based brightness control - Hardware agnostic
 {
   config,
   lib,
@@ -7,15 +7,16 @@
 }:
 
 let
-  cfg = config.programs.dell-brightness;
+  cfg = config.programs.solar-brightness;
 
-  brightnessScript = pkgs.writers.writeNuBin "brightness-manager" (
-    builtins.readFile ./brightness-manager.nu
-  );
+  brightnessScript = pkgs.writeScriptBin "solar-brightness-manager" ''
+    #!${pkgs.nushell}/bin/nu
+    ${pkgs.nushell}/bin/nu ${./solar-brightness-manager.nu} "$@"
+  '';
 in
 {
-  options.programs.dell-brightness = {
-    enable = lib.mkEnableOption "Dell U4323QE solar-based brightness control";
+  options.programs.solar-brightness = {
+    enable = lib.mkEnableOption "Solar-based brightness control";
 
     interval = lib.mkOption {
       type = lib.types.str;
@@ -65,26 +66,41 @@ in
       default = 0;
       description = "Offset in minutes to adjust solar calculations (+/- from calculated times)";
     };
+
+    transition = {
+      max-step = lib.mkOption {
+        type = lib.types.float;
+        default = 0.05;
+        description = "Maximum brightness change per transition step (0.0-1.0, default 0.05 = 5%)";
+      };
+
+      step-delay = lib.mkOption {
+        type = lib.types.int;
+        default = 200;
+        description = "Delay in milliseconds between transition steps";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.user.services.dell-brightness = {
+    systemd.user.services.solar-brightness = {
       Unit = {
-        Description = "Dell U4323QE brightness adjustment";
+        Description = "Solar-based brightness adjustment";
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${brightnessScript}/bin/brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset ${toString cfg.solar-offset}";
-        # Enable systemd log level prefixes for proper logging
+        ExecStart = "${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset ${toString cfg.solar-offset} --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay ${toString cfg.transition.step-delay}";
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
-        # Ensure solar calculation tools are available
         Path = with pkgs; [
           heliocron
-          ddcutil
+          bash
+          ddcutil # For DDC/CI backend
+          bc # For calculations
+          coreutils # For backlight backend
         ];
       };
       Install = {
@@ -92,9 +108,9 @@ in
       };
     };
 
-    systemd.user.timers.dell-brightness = {
+    systemd.user.timers.solar-brightness = {
       Unit = {
-        Description = "Dell U4323QE brightness timer";
+        Description = "Solar brightness timer";
         PartOf = [ "graphical-session.target" ];
       };
       Timer = {
@@ -106,10 +122,9 @@ in
       };
     };
 
-    # Ensure solar calculation and monitor control tools are available in user environment
     home.packages = with pkgs; [
       heliocron
-      ddcutil
+      ddcutil # For external monitors
     ];
   };
 }
