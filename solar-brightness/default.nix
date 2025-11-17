@@ -17,10 +17,10 @@ in
   options.programs.solar-brightness = {
     enable = lib.mkEnableOption "Solar-based brightness control";
 
-    interval = lib.mkOption {
-      type = lib.types.str;
-      default = "*:0/15";
-      description = "systemd calendar interval for brightness checks";
+    interval-minutes = lib.mkOption {
+      type = lib.types.int;
+      default = 15;
+      description = "Check brightness every N minutes";
     };
 
     min-brightness = lib.mkOption {
@@ -113,7 +113,7 @@ in
         PartOf = [ "graphical-session.target" ];
       };
       Timer = {
-        OnCalendar = cfg.interval;
+        OnCalendar = "*:0/${toString cfg.interval-minutes}";
         Persistent = true;
       };
       Install = {
