@@ -11,7 +11,7 @@ const PI = 3.14159265359
 def detect-backend [] {
   if (do { ^ddcutil detect err> /dev/null | complete } | get exit_code) == 0 {
     {name: "DDC/CI" type: "ddcci"}
-  } else if (do { ls /sys/class/backlight/ err> /dev/null | complete } | get exit_code) == 0 {
+  } else if (do { ^ls /sys/class/backlight/ err> /dev/null | complete } | get exit_code) == 0 {
     {name: "Backlight" type: "backlight" device: (ls /sys/class/backlight/ | first | get name)}
   } else {
     error make {msg: "No brightness control backend found (tried DDC/CI and backlight)"}
