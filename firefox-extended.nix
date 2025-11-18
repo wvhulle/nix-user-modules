@@ -211,6 +211,26 @@ in
         }
       ];
     };
+
+    uBlockOrigin = {
+      enable = lib.mkEnableOption "uBlock Origin configuration";
+
+      userFilters = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = ''
+          Custom uBlock Origin user filters.
+
+          IMPORTANT: Firefox must be completely closed BEFORE running home-manager/nixos-rebuild switch.
+          If Firefox is running during the rebuild, it may overwrite the managed storage file on shutdown,
+          causing the new filters to not take effect even after restart.
+        '';
+        example = [
+          "bandcamp.com##.factoid.corp-page-section.global-section"
+          "youtube.com##.ytp-pause-overlay"
+        ];
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -219,6 +239,19 @@ in
     };
 
     programs.gh.settings.browser = "firefox";
+
+    home.file = lib.mkIf (cfg.uBlockOrigin.enable || cfg.uBlockOrigin.userFilters != [ ]) {
+      ".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
+        name = "uBlock0@raymondhill.net";
+        description = "ignored";
+        type = "storage";
+        data = {
+          adminSettings = builtins.toJSON {
+            userFilters = lib.concatStringsSep "\n" cfg.uBlockOrigin.userFilters;
+          };
+        };
+      };
+    };
 
     programs.firefox = {
       enable = true;

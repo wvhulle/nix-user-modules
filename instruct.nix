@@ -16,6 +16,7 @@
     "When you are done with all tasks, search the codebase for todo (case-insensitive) comments to continue with."
     "Remove dead / unused code and inline simple functions that are just used once."
     "When you copy code from online sources, include a comment with the source URL."
+    "On Linux and NixOS, run commands with `--no-pager` where possible (such as `systemctl`)."
   ];
 
   languages = {

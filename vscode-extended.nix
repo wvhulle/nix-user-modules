@@ -159,6 +159,18 @@ let
   terminalSettings = {
     "terminal.integrated.fontFamily" = fontFamily;
     "terminal.integrated.smoothScrolling" = true;
+    "terminal.integrated.defaultProfile.linux" = "bash";
+    "terminal.integrated.profiles.linux" = {
+      "fish" = {
+        "path" = "${pkgs.fish}/bin/fish";
+      };
+      "nushell" = {
+        "path" = "${pkgs.nushell}/bin/nu";
+      };
+      "bash" = {
+        "path" = "${pkgs.bash}/bin/bash";
+      };
+    };
   };
 
   gitSettings = {
