@@ -61,9 +61,9 @@ in
     };
 
     solar-offset = lib.mkOption {
-      type = lib.types.int;
-      default = 0;
-      description = "Offset in minutes to adjust solar calculations (+/- from calculated times)";
+      type = lib.types.str;
+      default = "0min";
+      description = "Offset duration to adjust solar calculations (e.g., '0min', '30min', '1hr')";
     };
 
     transition = {
@@ -74,9 +74,9 @@ in
       };
 
       step-delay = lib.mkOption {
-        type = lib.types.int;
-        default = 200;
-        description = "Delay in milliseconds between transition steps";
+        type = lib.types.str;
+        default = "200ms";
+        description = "Delay duration between transition steps (e.g., '200ms', '500ms')";
       };
     };
   };
@@ -90,7 +90,7 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset ${toString cfg.solar-offset} --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay ${toString cfg.transition.step-delay}";
+        ExecStart = "${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset ${cfg.solar-offset} --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay ${cfg.transition.step-delay}";
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
