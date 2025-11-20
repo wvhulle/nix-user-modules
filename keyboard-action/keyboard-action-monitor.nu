@@ -67,9 +67,10 @@ def main [
       if $all_mods_pressed {
         print $"<5>($desc) detected - executing action"
 
-        # Launch using systemd-run to integrate with user session properly
-        # The --scope ensures it runs in the current graphical session context
-        ^systemd-run --user --scope --collect $action
+        # Launch app in background using systemd-run without blocking
+        # Using a transient service (not scope) allows fire-and-forget behavior
+        # The --no-block ensures we don't wait for the app to exit
+        ^systemd-run --user --no-block --collect $action
       }
     }
   }
