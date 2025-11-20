@@ -23,38 +23,45 @@ let
     in
     pkgs.writeShellScriptBin "keyboard-action-${name}" ''
       exec ${monitorScript}/bin/keyboard-action-monitor \
-        "${actionCfg.keyDescription}" \
         "${actionCfg.triggerKey.eventName}" \
-        "${actionCfg.action}" \
-        ${lib.concatStringsSep " \\\n        " (map lib.escapeShellArg modifierSpecs)}
+        ${lib.concatStringsSep " \\\n        " (map lib.escapeShellArg modifierSpecs)} \
+        --action "${actionCfg.action}" \
+        --description "${actionCfg.keyDescription}"
     '';
 
   # Generate systemd services for all configured actions
   keyboardActionServices = lib.mapAttrs' (
     name: actionCfg:
+    let
+      wrapperScript = makeKeyboardMonitor name actionCfg;
+    in
     lib.nameValuePair "keyboard-action-${name}" {
       Unit = {
         Description = "Monitor ${actionCfg.keyDescription} and run action";
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
+        # Force restart when script changes by including its store path in the unit
+        X-Restart-Triggers = "${monitorScript}";
       };
 
       Service = {
         Type = "simple";
         Restart = "always";
         RestartSec = 3;
-        ExecStart = "${makeKeyboardMonitor name actionCfg}/bin/keyboard-action-${name}";
+        ExecStart = "${wrapperScript}/bin/keyboard-action-${name}";
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
         Environment = [
-          "PATH=${
+          # Include system and user profile paths for launched applications
+          "PATH=/run/current-system/sw/bin:${config.home.profileDirectory}/bin:${
             lib.makeBinPath (
               with pkgs;
               [
                 evtest
-                systemd
+                util-linux
                 coreutils
+                systemd
               ]
             )
           }"

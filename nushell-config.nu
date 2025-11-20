@@ -53,7 +53,7 @@ $env.config = (
   $env.config | merge {
     hooks: {
       command_not_found: {|command_name|
-        command-not-found $command_name | str trim | print
+        command-not-found $command_name
       }
       pre_prompt: [
         {||

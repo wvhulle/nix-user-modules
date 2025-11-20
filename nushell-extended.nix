@@ -11,6 +11,7 @@ let
   consolidatedConfigFile = "nushell-config.nu";
 in
 {
+
   options.programs.nushell-extended = {
     enable = lib.mkEnableOption "extended nushell configuration";
 
@@ -54,6 +55,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+
     programs.nushell = {
       enable = true;
 
