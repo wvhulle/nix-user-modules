@@ -163,12 +163,15 @@ let
     "terminal.integrated.profiles.linux" = {
       "fish" = {
         "path" = "${pkgs.fish}/bin/fish";
+        "icon" = "terminal-bash";
       };
       "nushell" = {
         "path" = "${pkgs.nushell}/bin/nu";
+        "icon" = "terminal-powershell";
       };
       "bash" = {
         "path" = "${pkgs.bash}/bin/bash";
+        "icon" = "terminal-bash";
       };
     };
   };

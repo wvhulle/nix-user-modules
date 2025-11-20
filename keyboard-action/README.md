@@ -4,7 +4,6 @@ A NixOS user module for binding custom actions to keyboard shortcuts at the inpu
 
 ## Prerequisites
 
-
 Since this is a home-manager module, it cannot modify system-level group memberships. You must add users to the `input` group in your NixOS system configuration:
 
 ```nix
@@ -89,4 +88,3 @@ Verify keyboard events are being captured:
 ```bash
 sudo evtest /dev/input/by-path/*kbd
 ```
-
