@@ -49,18 +49,14 @@ export def refresh-theme [] {
   }
 }
 
-$env.config = (
-  $env.config | merge {
-    hooks: {
-      command_not_found: {|command_name|
-        command-not-found $command_name
-      }
-      pre_prompt: [
-        {||
-          refresh-theme
-          notify-long-command
-        }
-      ]
-    }
-  }
+$env.config = ($env.config | default {} hooks)
+$env.config.hooks = ($env.config.hooks | default {} command_not_found)
+$env.config.hooks.command_not_found = {|command_name|
+  command-not-found $command_name
+}
+
+$env.config.hooks = ($env.config.hooks | default [] pre_prompt)
+$env.config.hooks.pre_prompt = (
+  $env.config.hooks.pre_prompt
+  | append {|| refresh-theme; notify-long-command }
 )
