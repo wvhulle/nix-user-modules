@@ -6,6 +6,7 @@ _: {
     ./firefox-extended.nix
     ./git-extended.nix
     ./helix-extended.nix
+    ./keyboard-action
     ./konsole.nix
     ./nushell-extended.nix
     ./rust-extended.nix

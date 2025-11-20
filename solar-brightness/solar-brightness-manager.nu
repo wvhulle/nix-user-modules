@@ -20,7 +20,11 @@ def detect-backend [] {
 
 # Extract time from heliocron output line
 def extract-time [] {
-  parse "{label} is at: {rest}" | get rest.0 | split row " " | get 1
+  let parsed = $in | parse "{label} is at: {rest}"
+  let rest = $parsed | get rest.0
+  # Split by spaces and filter out empty strings to handle extra whitespace
+  let split = $rest | split row " " | where $it != ""
+  $split | get 1 # First element is date, second is time
 }
 
 # Get dawn/dusk lines based on twilight type
@@ -131,8 +135,8 @@ def get-brightness [backend: record] {
     )
     {normalized: ($percent / 100.0) percent: $percent}
   } else if $backend.type == "backlight" {
-    let current = (open $"($backend.device)/brightness" | into int)
-    let max = (open $"($backend.device)/max_brightness" | into int)
+    let current = (open $"($backend.device)/brightness" | str trim | into int)
+    let max = (open $"($backend.device)/max_brightness" | str trim | into int)
     let normalized = $current / $max
     {normalized: $normalized percent: ($normalized * 100 | math round)}
   } else {
@@ -301,8 +305,7 @@ def show-debug-info [config: record] {
 }
 
 def main [
-  --test # Run tests instead of brightness adjustment
-  --debug # Show debug information without adjusting brightness
+  command?: string # Command to run: adjust, dry-run, or test
   --min-brightness (-m): float = 0.1
   --max-brightness (-M): float = 0.8
   --latitude (-a): float = 51.4769
@@ -312,43 +315,68 @@ def main [
   --transition-max-step (-s): float = 0.05
   --transition-step-delay (-d): duration = 200ms
 ] {
-  if $test {
-    run-all-tests
-    return
-  }
+  let cmd = if ($command | is-empty) { "adjust" } else { $command }
 
-  let backend = detect-backend
-  let now = date now
-  let current_time = $now | format date "%H.%M" | into float
+  match $cmd {
+    "test" => {
+      run-all-tests
+    }
+    "dry-run" => {
+      let backend = detect-backend
+      let now = date now
+      let time_str = $now | format date "%H:%M:%S"
+      let current_time = $time_str | time-to-hours
 
-  let config = {
-    backend: $backend
-    current_time: $current_time
-    location: {latitude: $latitude longitude: $longitude}
-    twilight_type: $twilight_type
-    brightness: {min: $min_brightness max: $max_brightness}
-    solar_offset: $solar_offset
-    transition: {max_step: $transition_max_step step_delay: $transition_step_delay}
-  }
+      let config = {
+        backend: $backend
+        current_time: $current_time
+        location: {latitude: $latitude longitude: $longitude}
+        twilight_type: $twilight_type
+        brightness: {min: $min_brightness max: $max_brightness}
+        solar_offset: $solar_offset
+        transition: {max_step: $transition_max_step step_delay: $transition_step_delay}
+      }
 
-  if $debug {
-    try {
-      show-debug-info $config
-    } catch {|err|
-      print $"Error: ($err.msg)"
+      try {
+        show-debug-info $config
+      } catch {|err|
+        print $"Error: ($err.msg)"
+        exit 1
+      }
+    }
+    "adjust" => {
+      let backend = detect-backend
+      let now = date now
+      let time_str = $now | format date "%H:%M:%S"
+      let current_time = $time_str | time-to-hours
+
+      let config = {
+        backend: $backend
+        current_time: $current_time
+        location: {latitude: $latitude longitude: $longitude}
+        twilight_type: $twilight_type
+        brightness: {min: $min_brightness max: $max_brightness}
+        solar_offset: $solar_offset
+        transition: {max_step: $transition_max_step step_delay: $transition_step_delay}
+      }
+
+      print $"<6>Solar brightness manager (($backend.name)): ($now | format date '%H:%M')"
+      print $"<7>Backend: ($backend.type), Config: min=($min_brightness), max=($max_brightness)"
+
+      try {
+        run-brightness-adjustment $config
+      } catch {|err|
+        print $"<3>Error: ($err.msg)"
+        exit 1
+      }
+    }
+    _ => {
+      print $"Usage: solar-brightness [adjust|dry-run|test]"
+      print $"  adjust   - Adjust brightness based on solar position \\(default\\)"
+      print $"  dry-run  - Show current status and target brightness without adjusting"
+      print $"  test     - Run all tests"
       exit 1
     }
-    return
-  }
-
-  print $"<6>Solar brightness manager (($backend.name)): ($now | format date '%H:%M')"
-  print $"<7>Backend: ($backend.type), Config: min=($min_brightness), max=($max_brightness)"
-
-  try {
-    run-brightness-adjustment $config
-  } catch {|err|
-    print $"<3>Error: ($err.msg)"
-    exit 1
   }
 }
 

@@ -9,21 +9,9 @@
 let
   cfg = config.programs.solar-brightness;
 
-  brightnessScript = pkgs.writers.writeNuBin "solar-brightness-manager" (
+  brightnessScript = pkgs.writers.writeNuBin "solar-brightness" (
     builtins.readFile ./solar-brightness-manager.nu
   );
-
-  debugScript = pkgs.writeShellScriptBin "solar-brightness-debug" ''
-    ${brightnessScript}/bin/solar-brightness-manager --debug \
-      --min-brightness ${toString cfg.min-brightness} \
-      --max-brightness ${toString cfg.max-brightness} \
-      --latitude ${toString cfg.location.latitude} \
-      --longitude ${toString cfg.location.longitude} \
-      --twilight-type ${cfg.twilight-type} \
-      --solar-offset "${cfg.solar-offset}" \
-      --transition-max-step ${toString cfg.transition.max-step} \
-      --transition-step-delay "${cfg.transition.step-delay}"
-  '';
 
   # Both Nushell and systemd accept compatible duration formats
   # Common units: sec, min, hr/h, day
@@ -108,7 +96,7 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = ''${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset "${cfg.solar-offset}" --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay "${cfg.transition.step-delay}"'';
+        ExecStart = ''${brightnessScript}/bin/solar-brightness adjust --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset "${cfg.solar-offset}" --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay "${cfg.transition.step-delay}"'';
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
@@ -150,7 +138,7 @@ in
     home.packages = with pkgs; [
       heliocron
       ddcutil # For external monitors
-      debugScript
+      brightnessScript
     ];
   };
 }
