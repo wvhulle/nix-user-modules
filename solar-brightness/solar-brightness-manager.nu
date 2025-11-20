@@ -19,8 +19,8 @@ def detect-backend [] {
 }
 
 # Extract time from heliocron output line
-def extract-time [line: string] {
-  $line | parse "{label} is at: {time} {tz}" | first | get time
+def extract-time [] {
+  parse "{label} is at: {rest}" | get rest.0 | split row " " | get 1
 }
 
 # Get dawn/dusk lines based on twilight type
@@ -57,11 +57,11 @@ def get-solar-times [--latitude: float --longitude: float --twilight-type: strin
   let twilight = (get-twilight-lines $lines $twilight_type)
 
   {
-    dawn: (extract-time $twilight.dawn)
-    sunrise: (extract-time ($lines | where $it =~ "Sunrise is at:" | first))
-    solar_noon: (extract-time ($lines | where $it =~ "Solar noon is at:" | first))
-    sunset: (extract-time ($lines | where $it =~ "Sunset is at:" | first))
-    dusk: (extract-time $twilight.dusk)
+    dawn: ($twilight.dawn | extract-time)
+    sunrise: ($lines | where $it =~ "Sunrise is at:" | first | extract-time)
+    solar_noon: ($lines | where $it =~ "Solar noon is at:" | first | extract-time)
+    sunset: ($lines | where $it =~ "Sunset is at:" | first | extract-time)
+    dusk: ($twilight.dusk | extract-time)
   }
 }
 
@@ -227,8 +227,82 @@ def run-brightness-adjustment [config: record] {
   }
 }
 
+# Show debug information
+def show-debug-info [config: record] {
+  let solar_times = get-solar-times --latitude $config.location.latitude --longitude $config.location.longitude --twilight-type $config.twilight_type
+  let now = date now
+  let current_time_str = $now | format date '%H:%M:%S'
+
+  let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
+  let current = get-brightness $config.backend
+  let diff = ($target - $current.normalized) | math abs
+
+  print $"Solar Brightness Debug Information"
+  print $"=================================="
+  print ""
+  print $"Current Time: ($current_time_str)"
+  print $"Backend: ($config.backend.name) \(($config.backend.type))"
+  print ""
+  print $"Location:"
+  print $"  Latitude:  ($config.location.latitude)°"
+  print $"  Longitude: ($config.location.longitude)°"
+  print ""
+  print $"Configuration:"
+  print $"  Twilight Type: ($config.twilight_type)"
+  print $"  Solar Offset:  ($config.solar_offset)"
+  print $"  Min Brightness: ($config.brightness.min) \(($config.brightness.min * 100 | math round)%)"
+  print $"  Max Brightness: ($config.brightness.max) \(($config.brightness.max * 100 | math round)%)"
+  print ""
+  print $"Solar Times \(UTC):"
+  print $"  Dawn:        ($solar_times.dawn)"
+  print $"  Sunrise:     ($solar_times.sunrise)"
+  print $"  Solar Noon:  ($solar_times.solar_noon)"
+  print $"  Sunset:      ($solar_times.sunset)"
+  print $"  Dusk:        ($solar_times.dusk)"
+  print ""
+  print $"Brightness:"
+  print $"  Current:  ($current.normalized | math round -p 3) \(($current.percent)%)"
+  print $"  Target:   ($target | math round -p 3) \(($target * 100 | math round)%)"
+  print $"  Diff:     ($diff | math round -p 3) \(($diff * 100 | math round)%)"
+  print ""
+
+  if $diff > 0.01 {
+    print $"Status: Brightness adjustment needed"
+  } else {
+    print $"Status: Already at target level"
+  }
+
+  # Calculate and show next scheduled changes
+  print ""
+  print $"Scheduled Transitions:"
+  let offset_hours = ($config.solar_offset / 1hr)
+  let dawn_hour = ($solar_times.dawn | time-to-hours) + $offset_hours
+  let sunrise_hour = ($solar_times.sunrise | time-to-hours) + $offset_hours
+  let sunset_hour = ($solar_times.sunset | time-to-hours) + $offset_hours
+  let dusk_hour = ($solar_times.dusk | time-to-hours) + $offset_hours
+
+  let current_hour = $config.current_time
+
+  if $current_hour < $dawn_hour {
+    print $"  Next: Dawn transition starts at ($solar_times.dawn)"
+  } else if $current_hour < $sunrise_hour {
+    print $"  Current: In dawn transition"
+    print $"  Next: Sunrise at ($solar_times.sunrise)"
+  } else if $current_hour < $sunset_hour {
+    print $"  Current: Daytime"
+    print $"  Next: Sunset at ($solar_times.sunset)"
+  } else if $current_hour < $dusk_hour {
+    print $"  Current: In dusk transition"
+    print $"  Next: Night at ($solar_times.dusk)"
+  } else {
+    print $"  Current: Night"
+    print $"  Next: Dawn tomorrow"
+  }
+}
+
 def main [
   --test # Run tests instead of brightness adjustment
+  --debug # Show debug information without adjusting brightness
   --min-brightness (-m): float = 0.1
   --max-brightness (-M): float = 0.8
   --latitude (-a): float = 51.4769
@@ -247,9 +321,6 @@ def main [
   let now = date now
   let current_time = $now | format date "%H.%M" | into float
 
-  print $"<6>Solar brightness manager (($backend.name)): ($now | format date '%H:%M')"
-  print $"<7>Backend: ($backend.type), Config: min=($min_brightness), max=($max_brightness)"
-
   let config = {
     backend: $backend
     current_time: $current_time
@@ -259,6 +330,19 @@ def main [
     solar_offset: $solar_offset
     transition: {max_step: $transition_max_step step_delay: $transition_step_delay}
   }
+
+  if $debug {
+    try {
+      show-debug-info $config
+    } catch {|err|
+      print $"Error: ($err.msg)"
+      exit 1
+    }
+    return
+  }
+
+  print $"<6>Solar brightness manager (($backend.name)): ($now | format date '%H:%M')"
+  print $"<7>Backend: ($backend.type), Config: min=($min_brightness), max=($max_brightness)"
 
   try {
     run-brightness-adjustment $config
@@ -271,9 +355,9 @@ def main [
 # Tests
 
 export def "test extract-time" [] {
-  assert equal (extract-time "Sunrise is at: 08:21:51 UTC") "08:21:51"
-  assert equal (extract-time "Civil dawn is at: 07:44:37 UTC") "07:44:37"
-  assert equal (extract-time "Sunset is at: 17:08:05 UTC") "17:08:05"
+  assert equal ("Sunrise is at: 2025-11-20 08:21:51 +01:00" | extract-time) "08:21:51"
+  assert equal ("Civil dawn is at: 2025-11-20 07:44:37 +01:00" | extract-time) "07:44:37"
+  assert equal ("Sunset is at: 2025-11-20 17:08:05 +01:00" | extract-time) "17:08:05"
 }
 
 export def "test time-to-hours" [] {

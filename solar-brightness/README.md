@@ -11,7 +11,7 @@ Hardware-agnostic automatic brightness adjustment based on solar position.
     {
       programs.solar-brightness = {
         enable = true;
-        interval-minutes = 15; # Check every 15 minutes
+        interval-minutes = "15min";
         min-brightness = 0.05;
         max-brightness = 0.85;
         location = {
@@ -19,7 +19,7 @@ Hardware-agnostic automatic brightness adjustment based on solar position.
           longitude = 4.3572; # Your longitude
         };
         twilight-type = "civil";
-        solar-offset = 0;
+        solar-offset = "0sec";
       };
     }
   ];

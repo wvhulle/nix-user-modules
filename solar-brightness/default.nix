@@ -12,15 +12,32 @@ let
   brightnessScript = pkgs.writers.writeNuBin "solar-brightness-manager" (
     builtins.readFile ./solar-brightness-manager.nu
   );
+
+  debugScript = pkgs.writeShellScriptBin "solar-brightness-debug" ''
+    ${brightnessScript}/bin/solar-brightness-manager --debug \
+      --min-brightness ${toString cfg.min-brightness} \
+      --max-brightness ${toString cfg.max-brightness} \
+      --latitude ${toString cfg.location.latitude} \
+      --longitude ${toString cfg.location.longitude} \
+      --twilight-type ${cfg.twilight-type} \
+      --solar-offset "${cfg.solar-offset}" \
+      --transition-max-step ${toString cfg.transition.max-step} \
+      --transition-step-delay "${cfg.transition.step-delay}"
+  '';
+
+  # Both Nushell and systemd accept compatible duration formats
+  # Common units: sec, min, hr/h, day
+  # No conversion needed - pass through directly
 in
 {
   options.programs.solar-brightness = {
     enable = lib.mkEnableOption "Solar-based brightness control";
 
     interval-minutes = lib.mkOption {
-      type = lib.types.int;
-      default = 15;
-      description = "Check brightness every N minutes";
+      type = lib.types.str;
+      default = "15min";
+      description = "Check brightness interval (systemd/nushell duration format: sec, min, hr, day)";
+      example = "30min";
     };
 
     min-brightness = lib.mkOption {
@@ -63,7 +80,8 @@ in
     solar-offset = lib.mkOption {
       type = lib.types.str;
       default = "0min";
-      description = "Offset duration to adjust solar calculations (e.g., '0min', '30min', '1hr')";
+      description = "Offset duration to adjust solar calculations (e.g., '0sec', '0min', '30min', '1hr')";
+      example = "30min";
     };
 
     transition = {
@@ -90,16 +108,23 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset ${cfg.solar-offset} --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay ${cfg.transition.step-delay}";
+        ExecStart = ''${brightnessScript}/bin/solar-brightness-manager --min-brightness ${toString cfg.min-brightness} --max-brightness ${toString cfg.max-brightness} --latitude ${toString cfg.location.latitude} --longitude ${toString cfg.location.longitude} --twilight-type ${cfg.twilight-type} --solar-offset "${cfg.solar-offset}" --transition-max-step ${toString cfg.transition.max-step} --transition-step-delay "${cfg.transition.step-delay}"'';
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
-        Path = with pkgs; [
-          heliocron
-          bash
-          ddcutil # For DDC/CI backend
-          bc # For calculations
-          coreutils # For backlight backend
+        Environment = [
+          "PATH=${
+            lib.makeBinPath (
+              with pkgs;
+              [
+                heliocron
+                bash
+                ddcutil
+                bc
+                coreutils
+              ]
+            )
+          }"
         ];
       };
       Install = {
@@ -113,7 +138,8 @@ in
         PartOf = [ "graphical-session.target" ];
       };
       Timer = {
-        OnCalendar = "*:0/${toString cfg.interval-minutes}";
+        OnUnitActiveSec = cfg.interval-minutes;
+        OnBootSec = cfg.interval-minutes;
         Persistent = true;
       };
       Install = {
@@ -124,6 +150,7 @@ in
     home.packages = with pkgs; [
       heliocron
       ddcutil # For external monitors
+      debugScript
     ];
   };
 }
