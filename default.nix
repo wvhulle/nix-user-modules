@@ -8,6 +8,7 @@ _: {
     ./helix-extended.nix
     ./keyboard-action
     ./konsole.nix
+    ./mcp.nix
     ./nushell-extended.nix
     ./rust-extended.nix
     ./topiary.nix

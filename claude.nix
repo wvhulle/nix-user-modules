@@ -8,6 +8,7 @@
 let
   cfg = config.programs.claude;
   agentCfg = config.programs.agents;
+  mcpCfg = config.programs.mcp;
 
   statuslineScript = pkgs.writers.writeNuBin "claude-code-statusline" ''
     ^npx ccusage@latest statusline
@@ -40,62 +41,85 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; [
-      nodejs
-      jq
-    ];
+    # Enable MCP server management
+    programs.mcp.enable = true;
 
-    home.file = {
-      ".claude/CLAUDE.md".text = agentCfg.generated.mainPrompt;
+    home = {
+      packages = with pkgs; [
+        nodejs
+        jq
+      ];
 
-      ".claude/settings.json".text =
-        let
-          baseConfig = {
-            permissions = {
-              allow =
-                let
-                  terminalConfig = agentCfg.generated.terminalAutoApproval;
-                  # Filter for commands that should be auto-approved (true)
-                  approvedCommands = lib.filterAttrs (_cmd: approved: approved) terminalConfig;
-                  # Convert to Claude Code Bash permission format: "Bash(command)"
-                  bashPermissions = lib.mapAttrsToList (
-                    cmd: _: if lib.hasPrefix "/" cmd && lib.hasSuffix "/" cmd then null else "Bash(${cmd})"
-                  ) approvedCommands;
-                in
-                lib.filter (x: x != null) bashPermissions;
+      file = {
+        ".claude/CLAUDE.md".text = agentCfg.generated.mainPrompt;
 
-              deny =
-                let
-                  terminalConfig = agentCfg.generated.terminalAutoApproval;
-                  # Filter for commands that should be denied (false)
-                  deniedCommands = lib.filterAttrs (_cmd: approved: !approved) terminalConfig;
-                  bashDenials = lib.mapAttrsToList (cmd: _: "Bash(${cmd}:*)") deniedCommands;
-                in
-                bashDenials;
-            };
-          };
+        ".claude/settings.json".text =
+          let
+            baseConfig = {
+              permissions = {
+                allow =
+                  let
+                    terminalConfig = agentCfg.generated.terminalAutoApproval;
+                    # Filter for commands that should be auto-approved (true)
+                    approvedCommands = lib.filterAttrs (_cmd: approved: approved) terminalConfig;
+                    # Convert to Claude Code Bash permission format: "Bash(command)"
+                    bashPermissions = lib.mapAttrsToList (
+                      cmd: _: if lib.hasPrefix "/" cmd && lib.hasSuffix "/" cmd then null else "Bash(${cmd})"
+                    ) approvedCommands;
+                  in
+                  lib.filter (x: x != null) bashPermissions;
 
-          finalConfig =
-            baseConfig
-            // lib.optionalAttrs cfg.statusline.enable {
-              statusLine = {
-                type = "command";
-                command = "${statuslineScript}/bin/claude-code-statusline";
+                deny =
+                  let
+                    terminalConfig = agentCfg.generated.terminalAutoApproval;
+                    # Filter for commands that should be denied (false)
+                    deniedCommands = lib.filterAttrs (_cmd: approved: !approved) terminalConfig;
+                    bashDenials = lib.mapAttrsToList (cmd: _: "Bash(${cmd}:*)") deniedCommands;
+                  in
+                  bashDenials;
               };
             };
-        in
-        builtins.readFile (
-          pkgs.runCommand "claude-settings.json"
-            {
-              buildInputs = [ pkgs.jq ];
-              passAsFile = [ "jsonContent" ];
-              jsonContent = builtins.toJSON finalConfig;
-            }
-            ''
-              jq '.' < "$jsonContentPath" > $out
-            ''
-        );
-    };
 
+            finalConfig =
+              baseConfig
+              // lib.optionalAttrs cfg.statusline.enable {
+                statusLine = {
+                  type = "command";
+                  command = "${statuslineScript}/bin/claude-code-statusline";
+                };
+              };
+          in
+          builtins.readFile (
+            pkgs.runCommand "claude-settings.json"
+              {
+                buildInputs = [ pkgs.jq ];
+                passAsFile = [ "jsonContent" ];
+                jsonContent = builtins.toJSON finalConfig;
+              }
+              ''
+                jq '.' < "$jsonContentPath" > $out
+              ''
+          );
+      };
+
+      # Setup MCP servers configuration for Claude
+      activation.setupClaudeMcpServers = lib.mkIf (mcpCfg.servers != { }) (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          # Generate MCP configuration for all servers
+          ${pkgs.nushell}/bin/nu ${./setup-claude-mcp.nu} \
+            --mcp-config ${
+              pkgs.writeText "mcp-servers-config.json" (
+                builtins.toJSON {
+                  mcpServers = lib.mapAttrs (_name: server: {
+                    command = if server.command != "" then server.command else "${lib.getExe server.package}";
+                    inherit (server) args;
+                    inherit (server) env;
+                  }) mcpCfg.servers;
+                }
+              )
+            }
+        ''
+      );
+    };
   };
 }
