@@ -76,8 +76,14 @@ let
     {
       name = "nu-lint";
       publisher = "WillemVanhulle";
-      version = "0.0.6";
-      sha256 = "sha256-ktPdF5+fSIbKL02TYwJYnJbT0fTn4ipNdw6b3ZBn1EI=";
+      version = "0.0.8";
+      sha256 = "sha256-lmLRJiWZWf52evLIf1jU4+MummGCJv1O9/VQwyZPy4A=";
+    }
+    {
+      name = "rustowl-vscode";
+      publisher = "cordx56";
+      version = "0.3.4";
+      sha256 = "sha256-sM4CxQfdtDkZg5B7gxw66k7ZpIfHQFORIukHRpg0+S8=";
     }
   ];
 

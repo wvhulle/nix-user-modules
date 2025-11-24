@@ -20,7 +20,7 @@ in
 
     theme = lib.mkOption {
       type = lib.types.str;
-      default = "heisenberg";
+      default = "ao";
       description = "Helix theme to use";
       example = "onedark";
     };
@@ -148,7 +148,7 @@ in
               ];
             };
             auto-pairs = {
-              "\"" = "\"";
+              "\"" = ''"'';
               "(" = ")";
               "<" = ">";
               "[" = "]";

@@ -20,12 +20,6 @@ in
       description = "The direnv package to use";
     };
 
-    enableAllShellIntegrations = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable direnv integration for all supported shells";
-    };
-
     silentMode = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -66,7 +60,9 @@ in
     programs.direnv = {
       enable = true;
       inherit (cfg) package;
-      enableNushellIntegration = cfg.enableAllShellIntegrations;
+      enableNushellIntegration = true;
+      enableBashIntegration = true;
+      enableFishIntegration = true;
 
       nix-direnv = {
         enable = true;

@@ -231,25 +231,96 @@ def run-brightness-adjustment [config: record] {
   }
 }
 
-# Show debug information
-def show-debug-info [config: record] {
-  let solar_times = get-solar-times --latitude $config.location.latitude --longitude $config.location.longitude --twilight-type $config.twilight_type
+# Get systemd service configuration details
+def get-service-config [] {
+  let service_status = (^systemctl --user show solar-brightness.service --property=ExecStart | complete)
+  if $service_status.exit_code != 0 {
+    return {latitude: null longitude: null next_update: null error: "Service not found"}
+  }
+
+  let exec_start = ($service_status.stdout | str trim)
+
+  # Extract latitude and longitude from the service command
+  let lat_match = ($exec_start | parse --regex "--latitude ([0-9.-]+)")
+  let lon_match = ($exec_start | parse --regex "--longitude ([0-9.-]+)")
+
+  let latitude = if ($lat_match | length) > 0 {
+    $lat_match | get capture0 | first | into float
+  } else {
+    null
+  }
+
+  let longitude = if ($lon_match | length) > 0 {
+    $lon_match | get capture0 | first | into float
+  } else {
+    null
+  }
+
+  # Get next timer trigger
+  let timer_status = (^systemctl --user list-timers solar-brightness.timer --no-pager | complete)
+  let next_trigger = if $timer_status.exit_code == 0 {
+    let timer_lines = ($timer_status.stdout | lines | where $it != "" | skip 1)
+    if ($timer_lines | length) > 0 {
+      $timer_lines | first | str trim | split row " " | first
+    } else {
+      "No timer found"
+    }
+  } else {
+    "Timer not found"
+  }
+
+  {
+    latitude: $latitude
+    longitude: $longitude
+    next_update: $next_trigger
+    error: null
+  }
+}
+
+# Show information about solar brightness status
+def show-info [config: record] {
   let now = date now
   let current_time_str = $now | format date '%H:%M:%S'
 
+  # Get systemd service configuration
+  let service_config = get-service-config
+
+  # Use service coordinates if available, otherwise fall back to command coordinates
+  let effective_lat = if $service_config.error == null and $service_config.latitude != null {
+    $service_config.latitude
+  } else {
+    $config.location.latitude
+  }
+
+  let effective_lon = if $service_config.error == null and $service_config.longitude != null {
+    $service_config.longitude
+  } else {
+    $config.location.longitude
+  }
+
+  let solar_times = get-solar-times --latitude $effective_lat --longitude $effective_lon --twilight-type $config.twilight_type
   let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
   let current = get-brightness $config.backend
   let diff = ($target - $current.normalized) | math abs
 
-  print $"Solar Brightness Debug Information"
-  print $"=================================="
+  print $"Solar Brightness Information"
+  print $"============================"
   print ""
   print $"Current Time: ($current_time_str)"
   print $"Backend: ($config.backend.name) \(($config.backend.type))"
   print ""
-  print $"Location:"
-  print $"  Latitude:  ($config.location.latitude)°"
-  print $"  Longitude: ($config.location.longitude)°"
+
+  # Show only the effective coordinates (from service)
+  if $service_config.error == null and $service_config.latitude != null {
+    print $"Location:"
+    print $"  Latitude:  ($service_config.latitude)°"
+    print $"  Longitude: ($service_config.longitude)°"
+  } else {
+    print $"Location \(fallback):"
+    print $"  Latitude:  ($config.location.latitude)°"
+    print $"  Longitude: ($config.location.longitude)°"
+  }
+
   print ""
   print $"Configuration:"
   print $"  Twilight Type: ($config.twilight_type)"
@@ -274,6 +345,14 @@ def show-debug-info [config: record] {
     print $"Status: Brightness adjustment needed"
   } else {
     print $"Status: Already at target level"
+  }
+
+  # Show next update time
+  print ""
+  if $service_config.next_update != null and $service_config.next_update != "Unknown" {
+    print $"Next Automatic Update: ($service_config.next_update)"
+  } else {
+    print $"Next Automatic Update: Unknown \(check timer status)"
   }
 
   # Calculate and show next scheduled changes
@@ -305,7 +384,7 @@ def show-debug-info [config: record] {
 }
 
 def main [
-  command?: string # Command to run: adjust, dry-run, or test
+  command?: string # Command to run: adjust, info, or test
   --min-brightness (-m): float = 0.1
   --max-brightness (-M): float = 0.8
   --latitude (-a): float = 51.4769
@@ -321,7 +400,7 @@ def main [
     "test" => {
       run-all-tests
     }
-    "dry-run" => {
+    "info" => {
       let backend = detect-backend
       let now = date now
       let time_str = $now | format date "%H:%M:%S"
@@ -338,7 +417,7 @@ def main [
       }
 
       try {
-        show-debug-info $config
+        show-info $config
       } catch {|err|
         print $"Error: ($err.msg)"
         exit 1
@@ -371,10 +450,10 @@ def main [
       }
     }
     _ => {
-      print $"Usage: solar-brightness [adjust|dry-run|test]"
-      print $"  adjust   - Adjust brightness based on solar position \\(default\\)"
-      print $"  dry-run  - Show current status and target brightness without adjusting"
-      print $"  test     - Run all tests"
+      print "Usage: solar-brightness [adjust|info|test]"
+      print "  adjust - Adjust brightness based on solar position (default)"
+      print "  info   - Show current status and target brightness without adjusting"
+      print "  test   - Run all tests"
       exit 1
     }
   }
