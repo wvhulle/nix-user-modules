@@ -467,27 +467,6 @@ in
       ) agentCfg.languages)
     );
 
-    vscodeSettings = lib.mkIf cfg.mutableUserSettings (
-      let
-        mergedSettings =
-          languageFormatters
-          // editorSettings
-          // windowSettings
-          // terminalSettings
-          // gitSettings
-          // languageServerSettings
-          // extensionSettings
-          // (if cfg.includeAgentInstructions then copilotBaseInstructionsSettings.content else { })
-          // (if cfg.enableAutoApproval then copilotAutoApprovalSettings.content else { })
-          // cfg.additionalUserSettings;
-
-        jsonFormat = pkgs.formats.json { };
-        settingsJson = jsonFormat.generate "vscode-settings.json" mergedSettings;
-      in
-      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        ${updateVscodeSettingsScript}/bin/update-vscode-settings "${settingsJson}"
-      ''
-    );
     home = {
       activation = {
         fixVscodeExtensions = lib.mkIf cfg.mutableExtensionsDir {
@@ -500,6 +479,28 @@ in
             ${fixVscodeExtensionsScript}/bin/fix-vscode-extensions
           '';
         };
+
+        vscodeSettings = lib.mkIf cfg.mutableUserSettings (
+          let
+            mergedSettings =
+              languageFormatters
+              // editorSettings
+              // windowSettings
+              // terminalSettings
+              // gitSettings
+              // languageServerSettings
+              // extensionSettings
+              // (if cfg.includeAgentInstructions then copilotBaseInstructionsSettings else { })
+              // (if cfg.enableAutoApproval then copilotAutoApprovalSettings else { })
+              // cfg.additionalUserSettings;
+
+            jsonFormat = pkgs.formats.json { };
+            settingsJson = jsonFormat.generate "vscode-settings.json" mergedSettings;
+          in
+          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            ${updateVscodeSettingsScript}/bin/update-vscode-settings "${settingsJson}"
+          ''
+        );
 
         # Setup MCP servers configuration for VSCode
         setupVscodeMcpServers =
