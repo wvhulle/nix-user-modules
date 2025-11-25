@@ -311,7 +311,6 @@ let
     "chat.checkpoints.enabled" = true;
     "chat.checkpoints.showFileChanges" = true;
     "chat.extensionTools.enabled" = true;
-    "chat.mcp.discovery.enabled" = true;
   };
 
   fixVscodeExtensionsScript = pkgs.writers.writeNuBin "fix-vscode-extensions" (
@@ -320,6 +319,10 @@ let
 
   updateVscodeSettingsScript = pkgs.writers.writeNuBin "update-vscode-settings" (
     builtins.readFile ./update-vscode-settings.nu
+  );
+
+  setupVscodeMcpScript = pkgs.writers.writeNuBin "setup-vscode-mcp" (
+    builtins.readFile ./setup-vscode-mcp.nu
   );
 in
 {
@@ -429,6 +432,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable MCP server management for VSCode
+    programs.mcp.enable = true;
+
     warnings =
       lib.optional
         (
@@ -461,18 +467,7 @@ in
       ) agentCfg.languages)
     );
 
-    home.activation.fixVscodeExtensions = lib.mkIf cfg.mutableExtensionsDir {
-      after = [
-        "writeBoundary"
-        "reloadSystemd"
-      ];
-      before = [ ];
-      data = ''
-        ${fixVscodeExtensionsScript}/bin/fix-vscode-extensions
-      '';
-    };
-
-    home.activation.vscodeSettings = lib.mkIf cfg.mutableUserSettings (
+    vscodeSettings = lib.mkIf cfg.mutableUserSettings (
       let
         mergedSettings =
           languageFormatters
@@ -493,7 +488,39 @@ in
         ${updateVscodeSettingsScript}/bin/update-vscode-settings "${settingsJson}"
       ''
     );
+    home = {
+      activation = {
+        fixVscodeExtensions = lib.mkIf cfg.mutableExtensionsDir {
+          after = [
+            "writeBoundary"
+            "reloadSystemd"
+          ];
+          before = [ ];
+          data = ''
+            ${fixVscodeExtensionsScript}/bin/fix-vscode-extensions
+          '';
+        };
 
+        # Setup MCP servers configuration for VSCode
+        setupVscodeMcpServers =
+          let
+            mcpCfg = config.programs.mcp;
+            mcpConfigJson = builtins.toJSON {
+              mcpServers = lib.mapAttrs (_name: server: {
+                type = "stdio";
+                command = if server.command != "" then server.command else "${lib.getExe server.package}";
+                inherit (server) args;
+                inherit (server) env;
+              }) mcpCfg.servers;
+            };
+          in
+          lib.mkIf (mcpCfg.enable && mcpCfg.servers != { }) (
+            lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+              ${setupVscodeMcpScript}/bin/setup-vscode-mcp --mcp-config '${mcpConfigJson}' --scope user
+            ''
+          );
+      };
+    };
     programs.vscode = {
       enable = true;
       package = unstable.vscode;

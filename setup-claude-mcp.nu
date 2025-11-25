@@ -4,13 +4,13 @@
 # This script updates user-scoped MCP server configuration
 # and only writes if there are actual changes.
 def main [
-  --mcp-config: path # Path to MCP configuration JSON file
+  --mcp-config: string # JSON string containing MCP configuration
 ]: nothing -> nothing {
   let json_path = $env.HOME | path join '.claude.json'
 
   ensure-config-exists $json_path
 
-  let new_servers = open $mcp_config | get mcpServers
+  let new_servers = $mcp_config | from json | get mcpServers
   let existing_config = open $json_path
   let existing_servers = $existing_config | get -i mcpServers | default {}
 

@@ -103,23 +103,21 @@ in
       };
 
       # Setup MCP servers configuration for Claude
-      activation.setupClaudeMcpServers = lib.mkIf (mcpCfg.servers != { }) (
-        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          # Generate MCP configuration for all servers
-          ${pkgs.nushell}/bin/nu ${./setup-claude-mcp.nu} \
-            --mcp-config ${
-              pkgs.writeText "mcp-servers-config.json" (
-                builtins.toJSON {
-                  mcpServers = lib.mapAttrs (_name: server: {
-                    command = if server.command != "" then server.command else "${lib.getExe server.package}";
-                    inherit (server) args;
-                    inherit (server) env;
-                  }) mcpCfg.servers;
-                }
-              )
-            }
-        ''
-      );
+      activation.setupClaudeMcpServers =
+        let
+          mcpConfigJson = builtins.toJSON {
+            mcpServers = lib.mapAttrs (_name: server: {
+              command = if server.command != "" then server.command else "${lib.getExe server.package}";
+              inherit (server) args;
+              inherit (server) env;
+            }) mcpCfg.servers;
+          };
+        in
+        lib.mkIf (mcpCfg.servers != { }) (
+          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            ${pkgs.nushell}/bin/nu ${./setup-claude-mcp.nu} --mcp-config '${mcpConfigJson}'
+          ''
+        );
     };
   };
 }
