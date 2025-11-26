@@ -105,6 +105,8 @@ let
     haskell.haskell
     ms-python.python
     ms-python.vscode-pylance
+    ms-vscode.cpptools
+    ms-vscode.cmake-tools
     ms-vscode-remote.remote-ssh
     ms-vscode-remote.remote-ssh-edit
     ms-vsliveshare.vsliveshare
@@ -135,6 +137,12 @@ let
     "[rust]" = mkFormatter "rust-lang.rust-analyzer";
     "[scss]" = mkFormatter "vscode.css-language-features";
     "[python]" = mkFormatter "charliermarsh.ruff";
+    "[c]" = {
+      "editor.formatOnSave" = false;
+    };
+    "[cpp]" = {
+      "editor.formatOnSave" = false;
+    };
   };
 
   editorSettings = {
@@ -286,11 +294,11 @@ let
       ${instructionsText}
     '';
 
-  copilotBaseInstructionsSettings = lib.mkIf cfg.includeAgentInstructions {
+  copilotBaseInstructionsSettings = {
     "github.copilot.chat.codeGeneration.useInstructionFiles" = true;
   };
 
-  copilotAutoApprovalSettings = lib.mkIf cfg.enableAutoApproval {
+  copilotAutoApprovalSettings = {
     "chat.agent.enabled" = true;
     "chat.agent.maxRequests" = 100000;
     "github.copilot.chat.agent.runTasks" = true;
