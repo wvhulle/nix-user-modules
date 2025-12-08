@@ -69,7 +69,6 @@ in
       config = {
         global = {
           silent = cfg.silentMode;
-          # log_format = if cfg.silentMode then "" else "%s";
           hide_env_diff = cfg.hideEnvDiff;
           strict_env = cfg.strictEnv;
         };
@@ -79,8 +78,5 @@ in
       stdlib = cfg.customStdlib;
     };
 
-    # home.sessionVariables = {
-    #   DIRENV_LOG_FORMAT = if cfg.silentMode then "" else "%s";
-    # };
   };
 }

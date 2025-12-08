@@ -77,12 +77,30 @@ let
       version = "0.0.13";
       sha256 = "sha256-76KK85Jd34U9VG+0RKImoEblcr7z1vqje2LdhbdSs/g=";
     }
-    # {
-    #   name = "rustowl-vscode";
-    #   publisher = "cordx56";
-    #   version = "0.3.4";
-    #   sha256 = "sha256-sM4CxQfdtDkZg5B7gxw66k7ZpIfHQFORIukHRpg0+S8=";
-    # }
+    {
+      name = "project-manager";
+      publisher = "alefragnani";
+      version = "12.8.0";
+      sha256 = "1gp2dd4xm5a4dmaikcng79mfcb8a24mddsdwpgg4bqshcz4q7n5h";
+    }
+    {
+      name = "quicktype";
+      publisher = "quicktype";
+      version = "23.0.170";
+      sha256 = "1rwly0vm59d96k7isiplnmwsi77bzv3b0r98mwm7hp6gcpwp9bll";
+    }
+    {
+      name = "shell-format";
+      publisher = "foxundermoon";
+      version = "7.2.8";
+      sha256 = "1fkpj78xp40jaa2xh4yw87xl7ww73fg27zbxdq81j2wg793ycyv7";
+    }
+    {
+      name = "ast-grep-vscode";
+      publisher = "ast-grep";
+      version = "0.1.18";
+      sha256 = "sha256-zZ1B5Q5cdfJxbz7uRRyWP8eUZW24Gsezqi+Lx03eioo=";
+    }
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
@@ -119,6 +137,17 @@ let
     gruntfuggly.todo-tree
     timonwong.shellcheck
     myriad-dreamin.tinymist
+    charliermarsh.ruff
+    continue.continue
+    denoland.vscode-deno
+    github.vscode-github-actions
+    github.vscode-pull-request-github
+    mhutchie.git-graph
+    ms-azuretools.vscode-docker
+    rust-lang.rust-analyzer
+    svelte.svelte-vscode
+    wholroyd.jinja
+    wix.vscode-import-cost
   ];
 
   languageFormatters = {
@@ -262,6 +291,26 @@ let
     "githubPullRequests.pullBranch" = "never";
 
     "lean4.automaticallyBuildDependencies" = true;
+  };
+
+  copilotFeatureSettings = {
+    "github.copilot.chat.codesearch.enabled" = true;
+    "github.copilot.chat.editor.temporalContext.enabled" = true;
+    "github.copilot.chat.edits.temporalContext.enabled" = true;
+    "github.copilot.chat.generateTests.codeLens" = true;
+    "github.copilot.chat.newWorkspaceCreation.enabled" = true;
+    "github.copilot.chat.search.semanticTextResults" = true;
+    "github.copilot.nextEditSuggestions.enabled" = true;
+    "github.copilot.chat.agent.thinkingTool" = true;
+    "github.copilot.chat.useProjectTemplates" = false;
+    "github.copilot.nextEditSuggestions.fixes" = true;
+    "githubPullRequests.experimental.chat" = true;
+    "githubPullRequests.experimental.notificationsView" = true;
+    "githubPullRequests.experimental.useQuickChat" = true;
+  };
+
+  projectManagerSettings = {
+    "projectManager.git.baseFolders" = cfg.projectManagerBaseFolders;
   };
 
   generateLanguageInstructionFile =
@@ -438,6 +487,18 @@ in
         '';
       };
 
+      enableCopilotExperimentalFeatures = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable experimental GitHub Copilot and PR features";
+      };
+
+      projectManagerBaseFolders = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Base folders for Project Manager extension";
+      };
+
     };
   };
 
@@ -502,6 +563,8 @@ in
               // extensionSettings
               // (if cfg.includeAgentInstructions then copilotBaseInstructionsSettings else { })
               // (if cfg.enableAutoApproval then copilotAutoApprovalSettings else { })
+              // (if cfg.enableCopilotExperimentalFeatures then copilotFeatureSettings else { })
+              // (if cfg.projectManagerBaseFolders != [ ] then projectManagerSettings else { })
               // cfg.additionalUserSettings;
 
             jsonFormat = pkgs.formats.json { };
@@ -555,6 +618,8 @@ in
             extensionSettings
             copilotBaseInstructionsSettings
             copilotAutoApprovalSettings
+            (lib.mkIf cfg.enableCopilotExperimentalFeatures copilotFeatureSettings)
+            (lib.mkIf (cfg.projectManagerBaseFolders != [ ]) projectManagerSettings)
             cfg.additionalUserSettings
           ]
         );

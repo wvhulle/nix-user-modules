@@ -51,48 +51,112 @@ in
       default = config.home.username;
       description = "Username for nushell configuration";
     };
+
+    shellIntegrations = {
+      atuin = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable atuin shell history integration";
+        };
+        settings = lib.mkOption {
+          type = lib.types.attrsOf lib.types.anything;
+          default = {
+            sync_frequency = "10m";
+            network_timeout = 30;
+            network_connect_timeout = 5;
+            local_timeout = 5;
+          };
+          description = "Atuin configuration settings";
+        };
+      };
+
+      zoxide = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable zoxide directory jumping";
+        };
+      };
+
+      ohMyPosh = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable oh-my-posh prompt theme";
+        };
+        theme = lib.mkOption {
+          type = lib.types.str;
+          default = "peru";
+          description = "Oh-my-posh theme name";
+        };
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
 
-    programs.nushell = {
-      enable = true;
+    programs = {
+      nushell = {
+        enable = true;
 
-      shellAliases = lib.mkIf cfg.defaultAliases {
-        ll = "${pkgs.eza}/bin/eza -la";
-        tree = "${pkgs.eza}/bin/eza --tree";
-      };
-
-      settings = {
-        show_banner = false;
-        rm = {
-          always_trash = true;
+        shellAliases = lib.mkIf cfg.defaultAliases {
+          ll = "${pkgs.eza}/bin/eza -la";
+          tree = "${pkgs.eza}/bin/eza --tree";
         };
+
+        settings = {
+          show_banner = false;
+          rm = {
+            always_trash = true;
+          };
+        };
+
+        extraEnv =
+          let
+            allEnvVars =
+              cfg.environmentVariables
+              // (lib.optionalAttrs cfg.enableCommonDefaults {
+                LC_ALL = "en_US.UTF-8";
+                SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
+              })
+              // config.home.sessionVariables;
+
+            envVarLines = lib.mapAttrsToList (name: value: ''$env.${name} = "${value}"'') allEnvVars;
+          in
+          lib.concatStringsSep "\n" envVarLines;
+
+        extraConfig =
+          let
+            pathPrepend =
+              lib.optionalString (cfg.additionalPaths != [ ])
+                "$env.PATH = ($env.PATH | prepend [${
+                  lib.concatMapStringsSep " " (p: ''"${p}"'') cfg.additionalPaths
+                }])";
+          in
+          pathPrepend + "\n" + builtins.readFile ./nushell-config.nu;
       };
 
-      extraEnv =
-        let
-          allEnvVars =
-            cfg.environmentVariables
-            // (lib.optionalAttrs cfg.enableCommonDefaults {
-              LC_ALL = "en_US.UTF-8";
-              SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
-            })
-            // config.home.sessionVariables;
+      atuin = lib.mkIf cfg.shellIntegrations.atuin.enable {
+        enable = true;
+        enableNushellIntegration = false;
+        inherit (cfg.shellIntegrations.atuin) settings;
+      };
 
-          envVarLines = lib.mapAttrsToList (name: value: "$env.${name} = \"${value}\"") allEnvVars;
-        in
-        lib.concatStringsSep "\n" envVarLines;
+      zoxide = lib.mkIf cfg.shellIntegrations.zoxide.enable {
+        enable = true;
+        enableNushellIntegration = false;
+      };
 
-      extraConfig =
-        let
-          pathPrepend =
-            lib.optionalString (cfg.additionalPaths != [ ])
-              "$env.PATH = ($env.PATH | prepend [${
-                lib.concatMapStringsSep " " (p: ''"${p}"'') cfg.additionalPaths
-              }])";
-        in
-        pathPrepend + "\n" + builtins.readFile ./nushell-config.nu;
+      oh-my-posh = lib.mkIf cfg.shellIntegrations.ohMyPosh.enable {
+        enable = true;
+        enableNushellIntegration = false;
+        useTheme = cfg.shellIntegrations.ohMyPosh.theme;
+      };
+    };
+
+    home.file.".local/share/atuin/init.nu" = lib.mkIf cfg.shellIntegrations.atuin.enable {
+      source = ./atuin-init.nu;
     };
   };
 }

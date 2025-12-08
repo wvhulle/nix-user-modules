@@ -69,6 +69,22 @@ let
     };
   };
 
+  defaultExtensions = [
+    {
+      name = "youtube-nonstop";
+      id = "{0d7cafdd-501c-49ca-8ebb-e3341caaa55e}";
+    }
+    {
+      name = "ublock-origin";
+      id = "uBlock0@raymondhill.net";
+    }
+  ];
+
+  defaultUBlockOriginFilters = [
+    "bandcamp.com##.factoid.corp-page-section.global-section"
+    "bandcamp.com##li.buyItem:contains(/Vinyl|CD|Cassette/i)"
+  ];
+
   defaultPrivacyPrefs = {
     "browser.contentblocking.category" = {
       Value = "strict";
@@ -93,6 +109,14 @@ let
     "browser.sessionstore.resume_from_crash" = true;
     "browser.startup.page" = 3;
     "signon.rememberSignons" = true;
+    "browser.startup.homepage" = "about:blank";
+    "browser.newtabpage.enabled" = false;
+    "browser.tabs.loadInBackground" = true;
+    "browser.tabs.insertAfterCurrent" = true;
+    "devtools.theme" = "dark";
+    "devtools.toolbox.host" = "bottom";
+    "signon.generation.enabled" = false;
+    "signon.management.page.breach-alerts.enabled" = false;
   };
 in
 {
@@ -230,6 +254,30 @@ in
         ];
       };
     };
+
+    enableDefaultExtensions = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable default extensions (youtube-nonstop, ublock-origin)";
+    };
+
+    enableDefaultUBlockFilters = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable default uBlock Origin filters (bandcamp)";
+    };
+
+    downloadDirectory = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Download directory path";
+    };
+
+    neverTranslateLanguages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Languages to never translate";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -239,18 +287,24 @@ in
 
     programs.gh.settings.browser = "firefox";
 
-    home.file = lib.mkIf (cfg.uBlockOrigin.enable || cfg.uBlockOrigin.userFilters != [ ]) {
-      ".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
-        name = "uBlock0@raymondhill.net";
-        description = "ignored";
-        type = "storage";
-        data = {
-          adminSettings = builtins.toJSON {
-            userFilters = lib.concatStringsSep "\n" cfg.uBlockOrigin.userFilters;
+    home.file =
+      lib.mkIf
+        (cfg.enableDefaultUBlockFilters || cfg.uBlockOrigin.enable || cfg.uBlockOrigin.userFilters != [ ])
+        {
+          ".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
+            name = "uBlock0@raymondhill.net";
+            description = "ignored";
+            type = "storage";
+            data = {
+              adminSettings = builtins.toJSON {
+                userFilters = lib.concatStringsSep "\n" (
+                  (lib.optionals cfg.enableDefaultUBlockFilters defaultUBlockOriginFilters)
+                  ++ cfg.uBlockOrigin.userFilters
+                );
+              };
+            };
           };
         };
-      };
-    };
 
     programs.firefox = {
       enable = true;
@@ -267,11 +321,16 @@ in
             ];
           };
         })
-        (lib.optionalAttrs (cfg.additionalExtensions != [ ]) {
+        (lib.optionalAttrs (cfg.enableDefaultExtensions || cfg.additionalExtensions != [ ]) {
           ExtensionSettings = builtins.listToAttrs (
-            map (ext: mkExtension ext.name ext.id) cfg.additionalExtensions
+            map (ext: mkExtension ext.name ext.id) (
+              (lib.optionals cfg.enableDefaultExtensions defaultExtensions) ++ cfg.additionalExtensions
+            )
           );
         })
+        {
+          DisableAppUpdate = true;
+        }
       ];
 
       profiles.${cfg.profileName} = lib.mkMerge [
@@ -281,6 +340,14 @@ in
           settings = lib.mkMerge [
             (lib.optionalAttrs cfg.enablePrivacyPresets defaultPrivacyPrefs)
             (lib.optionalAttrs cfg.enableUxPresets (lib.mapAttrs (_: lib.mkDefault) defaultUxPrefs))
+            (lib.optionalAttrs (cfg.downloadDirectory != null) {
+              "browser.download.dir" = cfg.downloadDirectory;
+              "browser.download.useDownloadDir" = true;
+            })
+            (lib.optionalAttrs (cfg.neverTranslateLanguages != [ ]) {
+              "browser.translations.neverTranslateLanguages" =
+                lib.concatStringsSep "," cfg.neverTranslateLanguages;
+            })
             (lib.optionalAttrs cfg.preserveUserData {
               "privacy.clearOnShutdown.cache" = false;
               "privacy.clearOnShutdown.cookies" = false;

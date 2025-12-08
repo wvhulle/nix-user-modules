@@ -48,7 +48,7 @@ in
 
       longitude = lib.mkOption {
         type = lib.types.float;
-        default = -0.0005;
+        default = -5.0e-4;
         description = "Longitude in decimal degrees (positive = east)";
       };
     };
@@ -74,7 +74,7 @@ in
     transition = {
       max-step = lib.mkOption {
         type = lib.types.float;
-        default = 0.05;
+        default = 5.0e-2;
         description = "Maximum brightness change per transition step (0.0-1.0, default 0.05 = 5%)";
       };
 
@@ -120,6 +120,7 @@ in
                 ddcutil
                 brightnessctl
                 coreutils
+                kdePackages.qttools
               ]
             )
           }"

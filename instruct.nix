@@ -39,9 +39,10 @@
       enable = true;
       extensions = [ "nix" ];
       instructions = [
-        "When running as root, call `nixos-rebuild test` and skip the dry-run step."
-        "When running as a normal non-root user, use `nixos-rebuild dry-run` to validate the nix configuration of the current host without building it."
+        "When running as root, call `nh os switch` and skip the `--dry` flag."
+        "When running as a normal non-root user, use `nh os switch --dry` to validate the nix configuration of the current host without building it."
         "Never run any `find` command on the `/nix/store` folder based on filename, because absolute store paths slow to traverse and unpredictable."
+        "Use `command-not-found BINARY` to find the nix package to install."
         "Don't create new script/ directories, just embed script files directly in the parent directory."
         "Check for nix configuration evaluation performance regressions when making changes to the nix import structure."
         "Use separate files for shell scripts, never inline them in nix files (unless it is a one-liner)."

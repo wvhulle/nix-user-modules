@@ -8,6 +8,7 @@ _: {
     ./helix-extended.nix
     ./keyboard-action
     ./konsole-extended.nix
+    ./languages.nix
     ./lsp.nix
     ./mcp.nix
     ./nushell-extended.nix
