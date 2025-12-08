@@ -116,90 +116,92 @@ in
       };
 
       languages = lib.mkIf cfg.enableLanguageServers {
-        language = [
-          {
-            name = "nix";
-            auto-format = cfg.enableAutoFormat;
-            formatter = {
-              command = "${pkgs.nixfmt-classic}/bin/nixfmt";
-            };
-          }
-          {
-            name = "nu";
-            auto-format = cfg.enableAutoFormat;
-            language-servers = [ "nu-lint" ];
-            formatter = {
-              command = "${pkgs.topiary}/bin/topiary";
-              args = [
-                "format"
-                "--language"
-                "nu"
-              ];
-            };
-          }
-          {
-            name = "markdown";
-            auto-format = cfg.enableAutoFormat;
-            formatter = {
-              command = "${pkgs.dprint}/bin/dprint";
-              args = [
-                "fmt"
-                "--stdin"
-                "md"
-              ];
-            };
-            auto-pairs = {
-              "\"" = ''"'';
-              "(" = ")";
-              "<" = ">";
-              "[" = "]";
-              "{" = "}";
-            };
-          }
-          {
-            name = "rust";
-            language-servers = [ "rust-analyzer" ];
-          }
-          {
-            name = "typst";
-            language-servers = [ "tinymist" ];
-          }
-        ]
-        ++ cfg.additionalLanguages;
+        language = lib.sortOn (l: l.name) (
+          [
+            # Markdown
+            {
+              name = "markdown";
+              auto-format = cfg.enableAutoFormat;
+              formatter = {
+                command = "${pkgs.dprint}/bin/dprint";
+                args = [
+                  "fmt"
+                  "--stdin"
+                  "md"
+                ];
+              };
+              auto-pairs = {
+                "\"" = ''"'';
+                "(" = ")";
+                "<" = ">";
+                "[" = "]";
+                "{" = "}";
+              };
+            }
+
+            # Nix
+            {
+              name = "nix";
+              auto-format = cfg.enableAutoFormat;
+              formatter.command = "${pkgs.nixfmt-classic}/bin/nixfmt";
+            }
+
+            # Nushell
+            {
+              name = "nu";
+              auto-format = cfg.enableAutoFormat;
+              language-servers = [ "nu-lint" ];
+              formatter = {
+                command = "${pkgs.topiary}/bin/topiary";
+                args = [
+                  "format"
+                  "--language"
+                  "nu"
+                ];
+              };
+            }
+
+            # Rust
+            {
+              name = "rust";
+              language-servers = [ "rust-analyzer" ];
+            }
+
+            # Typst
+            {
+              name = "typst";
+              language-servers = [ "tinymist" ];
+            }
+          ]
+          ++ cfg.additionalLanguages
+        );
 
         language-server = {
+          # Nushell
           nu-lint = {
             command = "nu-lint";
             args = [ "--lsp" ];
           };
-          rust-analyzer = {
-            config = {
-              cargo = {
-                allFeatures = true;
-                allTargets = false;
-              };
-              check = {
-                command = "clippy";
-                # extraArgs = [
-                #   "--"
-                #   "-W"
-                #   "clippy::pedantic"
-                # ];
-              };
+
+          # Rust
+          rust-analyzer.config = {
+            cargo = {
+              allFeatures = true;
+              allTargets = false;
             };
+            check.command = "clippy";
           };
 
+          # Typst (open preview with `tinymist preview slides.typ`)
           tinymist = {
-            # Open preview with `tinymist preview slides.typ`
             command = "tinymist";
-            config = {
-              preview.background.enabled = true;
-              preview.background.args = [
+            config.preview.background = {
+              enabled = true;
+              args = [
                 "--data-plane-host=127.0.0.1:23635"
                 "--open"
               ];
             };
-
           };
         }
         // cfg.additionalLanguageServers;
