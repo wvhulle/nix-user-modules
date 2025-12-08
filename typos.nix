@@ -174,7 +174,6 @@ in
         example = lib.literalExpression ''
           {
             wvhulle = "wvhulle";  # Always valid
-            teh = "the";          # Correction
             badword = "";         # Never valid
           }
         '';
@@ -190,8 +189,6 @@ in
         '';
         example = lib.literalExpression ''
           {
-            Hte = "Hte";                # Always valid identifier
-            flate2 = "flate2";          # Library name
             ERROR_CODE_TYPO = "ERROR_CODE";  # Correction
           }
         '';

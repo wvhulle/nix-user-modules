@@ -8,7 +8,6 @@
 let
   cfg = config.programs.nushell-extended;
 
-  consolidatedConfigFile = "nushell-config.nu";
 in
 {
 
@@ -93,7 +92,7 @@ in
                 lib.concatMapStringsSep " " (p: ''"${p}"'') cfg.additionalPaths
               }])";
         in
-        pathPrepend + "\n" + builtins.readFile (./${consolidatedConfigFile});
+        pathPrepend + "\n" + builtins.readFile ./nushell-config.nu;
     };
   };
 }

@@ -1,12 +1,19 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
 let
   cfg = config.programs.helix-extended;
+  lspCfg = config.programs.lsp;
+
+  getServerCommand =
+    name: server: if server.command != "" then server.command else "${server.package}/bin/${name}";
+
+  getFormatterCommand =
+    name: formatter:
+    if formatter.command != "" then formatter.command else "${formatter.package}/bin/${name}";
 in
 {
   options.programs.helix-extended = {
@@ -122,13 +129,10 @@ in
             {
               name = "markdown";
               auto-format = cfg.enableAutoFormat;
+              language-servers = [ "typos-lsp" ];
               formatter = {
-                command = "${pkgs.dprint}/bin/dprint";
-                args = [
-                  "fmt"
-                  "--stdin"
-                  "md"
-                ];
+                command = getFormatterCommand "dprint" lspCfg.formatters.dprint;
+                args = lspCfg.formatters.dprint.args ++ [ "md" ];
               };
               auto-pairs = {
                 "\"" = ''"'';
@@ -143,69 +147,65 @@ in
             {
               name = "nix";
               auto-format = cfg.enableAutoFormat;
-              formatter.command = "${pkgs.nixfmt-classic}/bin/nixfmt";
+              language-servers = [
+                "nil"
+                "typos-lsp"
+              ];
+              formatter.command = getFormatterCommand "nixfmt" lspCfg.formatters.nixfmt;
             }
 
             # Nushell
             {
               name = "nu";
               auto-format = cfg.enableAutoFormat;
-              language-servers = [ "nu-lint" ];
+              language-servers = [
+                "nu-lint"
+                "typos-lsp"
+              ];
               formatter = {
-                command = "${pkgs.topiary}/bin/topiary";
-                args = [
-                  "format"
-                  "--language"
-                  "nu"
-                ];
+                command = getFormatterCommand "topiary" lspCfg.formatters.topiary;
+                args = lspCfg.formatters.topiary.args ++ [ "nu" ];
               };
             }
 
             # Rust
             {
               name = "rust";
-              language-servers = [ "rust-analyzer" ];
+              language-servers = [
+                "rust-analyzer"
+                "typos-lsp"
+              ];
             }
 
             # Typst
             {
               name = "typst";
-              language-servers = [ "tinymist" ];
+              language-servers = [
+                "tinymist"
+                "typos-lsp"
+              ];
             }
           ]
           ++ cfg.additionalLanguages
         );
 
-        language-server = {
-          # Nushell
-          nu-lint = {
-            command = "nu-lint";
-            args = [ "--lsp" ];
-          };
-
-          # Rust
-          rust-analyzer.config = {
-            cargo = {
-              allFeatures = true;
-              allTargets = false;
-            };
-            check.command = "clippy";
-          };
-
-          # Typst (open preview with `tinymist preview slides.typ`)
-          tinymist = {
-            command = "tinymist";
-            config.preview.background = {
-              enabled = true;
-              args = [
-                "--data-plane-host=127.0.0.1:23635"
-                "--open"
-              ];
-            };
-          };
-        }
-        // cfg.additionalLanguageServers;
+        language-server =
+          let
+            mkServerConfig =
+              name: server:
+              lib.nameValuePair name (
+                {
+                  command = getServerCommand name server;
+                }
+                // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
+                // lib.optionalAttrs (server.config != { }) { inherit (server) config; }
+              );
+            enabledServers = lib.filterAttrs (_: s: s.enable) lspCfg.servers;
+          in
+          lib.mapAttrs' mkServerConfig enabledServers // cfg.additionalLanguageServers;
       };
     };
+
+    programs.lsp.enable = true;
   };
 }

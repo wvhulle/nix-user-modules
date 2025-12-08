@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  unstable ? pkgs,
   ...
 }:
 
@@ -15,8 +14,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = unstable.direnv;
-      defaultText = lib.literalExpression "unstable.direnv";
+      default = pkgs.direnv;
       description = "The direnv package to use";
     };
 

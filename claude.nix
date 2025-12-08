@@ -8,7 +8,7 @@
 let
   cfg = config.programs.claude;
   agentCfg = config.programs.agents;
-  mcpCfg = config.programs.mcp;
+  mcpCfg = config.programs.mcp-extended;
 
   statuslineScript = pkgs.writers.writeNuBin "claude-code-statusline" ''
     ^npx ccusage@latest statusline
@@ -42,7 +42,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Enable MCP server management
-    programs.mcp.enable = true;
+    programs.mcp-extended.enable = true;
 
     home = {
       packages = with pkgs; [
@@ -112,10 +112,12 @@ in
               inherit (server) env;
             }) mcpCfg.servers;
           };
+
+          setupScript = pkgs.writers.writeNuBin "setup-claude-mcp" (builtins.readFile ./setup-claude-mcp.nu);
         in
         lib.mkIf (mcpCfg.servers != { }) (
           lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-            ${pkgs.nushell}/bin/nu ${./setup-claude-mcp.nu} --mcp-config '${mcpConfigJson}'
+            ${setupScript}/bin/setup-claude-mcp --mcp-config '${mcpConfigJson}'
           ''
         );
     };

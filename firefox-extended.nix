@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  unstable ? pkgs,
   ...
 }:
 
@@ -102,8 +101,8 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = unstable.firefox;
-      defaultText = lib.literalExpression "unstable.firefox";
+      default = pkgs.firefox;
+      defaultText = lib.literalExpression "pkgs.firefox";
       description = "Firefox package to use";
     };
 

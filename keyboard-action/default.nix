@@ -40,8 +40,6 @@ let
         Description = "Monitor ${actionCfg.keyDescription} and run action";
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
-        # Force restart when script changes by including its store path in the unit
-        X-Restart-Triggers = "${monitorScript}";
       };
 
       Service = {

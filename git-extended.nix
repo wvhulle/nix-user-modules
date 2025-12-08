@@ -41,24 +41,6 @@ in
       description = "Git signing configuration";
     };
 
-    enableDelta = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Whether to enable delta for git diff";
-    };
-
-    enableDifftastic = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable difftastic for git diff";
-    };
-
-    enableGitHubIntegration = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable GitHub CLI integration for credentials";
-    };
-
     defaultEditor = lib.mkOption {
       type = lib.types.package;
       default = pkgs.helix;
@@ -94,62 +76,69 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.git = {
-      enable = true;
-      package = pkgs.git;
 
-      inherit (cfg) userName;
-      inherit (cfg) userEmail;
-
-      signing = lib.mkIf (cfg.signing.key != null) {
-        inherit (cfg.signing) signByDefault;
-        inherit (cfg.signing) key;
-      };
-
-      delta = lib.mkIf cfg.enableDelta {
+    programs = {
+      difftastic = {
+        git.enable = true;
         enable = true;
         options = {
-          navigate = true;
-          hyperlinks = true;
-          line-numbers = true;
+          background = "dark";
+          color = "auto";
+          display = "side-by-side-show-both";
         };
+
       };
 
-      difftastic = lib.mkIf cfg.enableDifftastic {
+      git = {
         enable = true;
-        background = "dark";
-        color = "auto";
-        display = "side-by-side-show-both";
-      };
+        package = pkgs.git;
 
-      ignores = [
-        "CLAUDE.local.md"
-        "TODO.md"
-        "AGENTS.md"
-        ".claude/"
-        ".claude.md"
-        ".core.*"
-        ".idea/"
-        "*.swp"
-        "*.swo"
-        "*~"
+        signing = lib.mkIf (cfg.signing.key != null) {
+          inherit (cfg.signing) signByDefault;
+          inherit (cfg.signing) key;
+        };
 
-        ".DS_Store"
-        ".DS_Store?"
-        "._*"
-        ".Spotlight-V100"
-        ".Trashes"
-        "ehthumbs.db"
-        "Thumbs.db"
+        # delta = {
+        #   enable = true;
+        #   options = {
+        #     navigate = true;
+        #     hyperlinks = true;
+        #     line-numbers = true;
+        #   };
+        # };
 
-        ".direnv/"
-        "result"
-        "result-*"
-      ]
-      ++ cfg.additionalIgnores;
+        ignores = [
+          "CLAUDE.local.md"
+          "TODO.md"
+          "AGENTS.md"
+          ".claude/"
+          ".claude.md"
+          ".core.*"
+          ".idea/"
+          "*.swp"
+          "*.swo"
+          "*~"
 
-      extraConfig = lib.mkMerge [
-        {
+          ".DS_Store"
+          ".DS_Store?"
+          "._*"
+          ".Spotlight-V100"
+          ".Trashes"
+          "ehthumbs.db"
+          "Thumbs.db"
+
+          ".direnv/"
+          "result"
+          "result-*"
+        ]
+        ++ cfg.additionalIgnores;
+
+        settings = {
+          user = {
+            email = cfg.userEmail;
+            name = cfg.userName;
+          };
+
           branch.sort = "-committerdate";
           tag.sort = "version:refname";
           init.defaultBranch = "main";
@@ -225,40 +214,34 @@ in
           merge = {
             conflictstyle = "zdiff3";
             tool = "meld";
+            mergiraf = {
+              name = "mergiraf";
+              driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
+            };
           };
-        }
 
-        {
           difftool = {
             prompt = false;
             meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$REMOTE"'';
           };
 
           mergetool.meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'';
-        }
 
-        (lib.optionalAttrs cfg.enableGitHubIntegration {
           credential = {
             "https://github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
             "https://gist.github.com".helper = "!${pkgs.gh}/bin/gh auth git-credential";
             helper = "store";
           };
-        })
+        };
+      };
 
-        (lib.optionalAttrs cfg.enableMergiraf {
-          merge.mergiraf = {
-            name = "mergiraf";
-            driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
-          };
-        })
-      ];
     };
 
     # Install mergiraf package when enabled
-    home.packages = lib.optional cfg.enableMergiraf pkgs.mergiraf;
+    home.packages = [ pkgs.mergiraf ];
 
     # Configure global gitattributes for mergiraf
-    home.file.".config/git/attributes" = lib.mkIf cfg.enableMergiraf {
+    home.file.".config/git/attributes" = {
       text = ''
         # Use mergiraf for all files
         * merge=mergiraf

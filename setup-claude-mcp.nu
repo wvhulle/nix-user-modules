@@ -12,7 +12,7 @@ def main [
 
   let new_servers = $mcp_config | from json | get mcpServers
   let existing_config = open $json_path
-  let existing_servers = $existing_config | get -i mcpServers | default {}
+  let existing_servers = $existing_config | get mcpServers | default {}
 
   if (has-changes $new_servers $existing_servers) {
     update-and-report $json_path $existing_config $existing_servers $new_servers
@@ -36,7 +36,7 @@ def has-changes [
 ]: nothing -> bool {
   $new_servers
   | items {|name config|
-    let existing = $existing_servers | get -i $name
+    let existing = $existing_servers | get $name
     $existing == null or $existing != $config
   }
   | any {|x| $x }
@@ -68,7 +68,7 @@ def report-changes [
 ]: nothing -> nothing {
   $new_servers
   | items {|name _config|
-    if ($existing_servers | get -i $name) == null {
+    if ($existing_servers | get $name) == null {
       $"<info>  - Added: ($name)"
     } else {
       $"<info>  - Updated: ($name)"

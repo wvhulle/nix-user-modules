@@ -2,7 +2,6 @@
   lib,
   config,
   pkgs,
-  unstable,
   ...
 }:
 
@@ -86,7 +85,7 @@ let
     # }
   ];
 
-  defaultNixpkgsExtensions = with unstable.vscode-extensions; [
+  defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
     haskell.haskell
     justusadam.language-haskell
     vadimcn.vscode-lldb
@@ -444,7 +443,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Enable MCP server management for VSCode
-    programs.mcp.enable = true;
+    programs.mcp-extended.enable = true;
 
     warnings =
       lib.optional
@@ -516,7 +515,7 @@ in
         # Setup MCP servers configuration for VSCode
         setupVscodeMcpServers =
           let
-            mcpCfg = config.programs.mcp;
+            mcpCfg = config.programs.mcp-extended;
             mcpConfigJson = builtins.toJSON {
               mcpServers = lib.mapAttrs (_name: server: {
                 type = "stdio";
@@ -535,7 +534,7 @@ in
     };
     programs.vscode = {
       enable = true;
-      package = unstable.vscode;
+      package = pkgs.vscode;
       inherit (cfg) mutableExtensionsDir;
 
       profiles.default = {

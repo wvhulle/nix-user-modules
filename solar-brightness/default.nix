@@ -95,16 +95,18 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = ''
-          ${brightnessScript}/bin/solar-brightness adjust --min-brightness ${toString cfg.min-brightness} 
-                  --max-brightness ${toString cfg.max-brightness} 
-                  --latitude ${toString cfg.location.latitude} 
-                  --longitude ${toString cfg.location.longitude} 
-                  --twilight-type ${cfg.twilight-type} 
-                  --solar-offset "${cfg.solar-offset}" 
-                  --transition-max-step ${toString cfg.transition.max-step} 
-                  --transition-step-delay "${cfg.transition.step-delay}"
-        '';
+        ExecStart = lib.concatStringsSep " " [
+          "${brightnessScript}/bin/solar-brightness"
+          "adjust"
+          "--min-brightness ${toString cfg.min-brightness}"
+          "--max-brightness ${toString cfg.max-brightness}"
+          "--latitude ${toString cfg.location.latitude}"
+          "--longitude ${toString cfg.location.longitude}"
+          "--twilight-type ${cfg.twilight-type}"
+          "--solar-offset ${cfg.solar-offset}"
+          "--transition-max-step ${toString cfg.transition.max-step}"
+          "--transition-step-delay ${cfg.transition.step-delay}"
+        ];
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";

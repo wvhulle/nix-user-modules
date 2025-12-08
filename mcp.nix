@@ -6,7 +6,7 @@
 }:
 
 let
-  cfg = config.programs.mcp;
+  cfg = config.programs.mcp-extended;
 
   mcpServerType = lib.types.submodule {
     options = {
@@ -44,7 +44,7 @@ let
   };
 in
 {
-  options.programs.mcp = {
+  options.programs.mcp-extended = {
     enable = lib.mkEnableOption "MCP (Model Context Protocol) server management";
 
     servers = lib.mkOption {
