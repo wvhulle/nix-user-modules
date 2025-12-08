@@ -9,10 +9,8 @@ _: {
     ./keyboard-action
     ./konsole-extended.nix
     ./languages.nix
-    ./lsp.nix
     ./mcp.nix
-    ./nushell-extended.nix
-    ./rust-extended.nix
+    ./nushell
     ./topiary.nix
     ./typography.nix
     ./typos.nix
