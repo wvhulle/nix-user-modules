@@ -1,0 +1,36 @@
+--- a/src/toolchain.rs
++++ b/src/toolchain.rs
+@@ -37,7 +37,7 @@
+ 
+ const ARCHIVE_NAME: &str = env!("RUSTOWL_ARCHIVE_NAME");
+ 
+-const RUSTC_DRIVER_NAME: &str = env!("RUSTC_DRIVER_NAME");
++
+ fn recursive_read_dir(path: impl AsRef<Path>) -> Vec<PathBuf> {
+     let mut paths = Vec::new();
+     if path.as_ref().is_dir() {
+@@ -54,7 +54,8 @@
+ }
+ pub fn rustc_driver_path(sysroot: impl AsRef<Path>) -> Option<PathBuf> {
+     for file in recursive_read_dir(sysroot) {
+-        if file.file_name().unwrap().to_string_lossy() == RUSTC_DRIVER_NAME {
++        let name = file.file_name().unwrap().to_string_lossy();
++        if name.starts_with("librustc_driver-") && name.ends_with(".so") {
+             log::info!("rustc_driver found: {}", file.display());
+             return Some(file);
+         }
+@@ -165,6 +166,14 @@
+ }
+ 
+ pub async fn setup_toolchain() -> Result<PathBuf, ()> {
++    // If RUSTOWL_SYSROOTS is set and valid, skip downloading - we have a pre-configured sysroot
++    if let Some(sysroot) = get_configured_sysroot() {
++        log::info!("Using pre-configured sysroot, skipping toolchain download");
++        // Return the parent directory of the sysroot (runtime dir equivalent)
++        let runtime = sysroot.parent().unwrap_or(&sysroot).to_path_buf();
++        return Ok(runtime);
++    }
++
+     log::info!("start downloading {ARCHIVE_NAME}...");
+     let tarball_url = format!(
+         "https://github.com/cordx56/rustowl/releases/download/v{}/{ARCHIVE_NAME}",

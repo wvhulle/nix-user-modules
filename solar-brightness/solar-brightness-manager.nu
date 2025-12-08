@@ -1,0 +1,747 @@
+#!/usr/bin/env nu
+
+# Solar-based brightness manager
+# Hardware-agnostic with automatic backend detection and smooth transitions
+
+use std assert
+
+const PI = 3.14159265359
+const SERVICE_NAME = "solar-brightness.service"
+const TIMER_NAME = "solar-brightness.timer"
+
+# Detect brightness control backend
+def detect-backend [] {
+  if (ddcutil detect | complete | get exit_code) == 0 {
+    {name: "DDC/CI" type: "ddcci"}
+  } else if (^ls /sys/class/backlight/ err> /dev/null | complete | get exit_code) == 0 {
+    {name: "Backlight" type: "backlight" device: (ls /sys/class/backlight/ | first | get name)}
+  } else {
+    error make {msg: "No brightness control backend found (tried DDC/CI and backlight)"}
+  }
+}
+
+# Extract time from heliocron output line
+def extract-time []: string -> any {
+  let parsed = $in | parse "{label} is at: {rest}"
+  let rest = $parsed | get rest.0
+  # Split by spaces and filter out empty strings to handle extra whitespace
+  let split = $rest | split row " " | where $it != ""
+  $split | get 1 # First element is date, second is time
+}
+
+# Get dawn/dusk lines based on twilight type
+def get-twilight-lines [lines: list<string> twilight: string] {
+  let prefix = match $twilight {
+    "civil" => "Civil"
+    "nautical" => "Nautical"
+    "astronomical" => "Astronomical"
+    _ => ""
+  }
+
+  if $prefix == "" {
+    {
+      dawn: ($lines | where $it =~ "Sunrise is at:" | first)
+      dusk: ($lines | where $it =~ "Sunset is at:" | first)
+    }
+  } else {
+    {
+      dawn: ($lines | where $it =~ $"($prefix) dawn is at:" | first)
+      dusk: ($lines | where $it =~ $"($prefix) dusk is at:" | first)
+    }
+  }
+}
+
+# Get solar times from heliocron
+def get-solar-times [--latitude: float --longitude: float --twilight-type: string] {
+  let output = (^heliocron --latitude $latitude --longitude $longitude report | complete)
+
+  if $output.exit_code != 0 {
+    error make {msg: $"Failed to get solar times: ($output.stderr)"}
+  }
+
+  let lines = ($output.stdout | lines)
+  let twilight = (get-twilight-lines $lines $twilight_type)
+
+  {
+    dawn: ($twilight.dawn | extract-time)
+    sunrise: ($lines | where $it =~ "Sunrise is at:" | first | extract-time)
+    solar_noon: ($lines | where $it =~ "Solar noon is at:" | first | extract-time)
+    sunset: ($lines | where $it =~ "Sunset is at:" | first | extract-time)
+    dusk: ($twilight.dusk | extract-time)
+  }
+}
+
+# Convert time string (HH:MM:SS) to hours since midnight
+def time-to-hours [] {
+  let parts = $in | split row ":"
+  let hours = $parts | first | into float
+  let minutes = $parts | get 1 | into float
+  $hours + ($minutes / 60.0)
+}
+
+# Calculate smooth transition progress using cosine interpolation
+def smooth-step [progress: float] {
+  (1.0 - (($progress * $PI) | math cos)) / 2.0
+}
+
+def smooth-step-two [progress: float] {
+  (1.0 - (1 | math cos)) / 2.0
+}
+
+# Calculate brightness based on solar position
+def calculate-brightness [
+  current: float
+  times: record
+  --min: float
+  --max: float
+  --offset: duration
+] {
+  let offset_hours = ($offset / 1hr)
+  let dawn = ($times.dawn | time-to-hours) + $offset_hours
+  let sunrise = ($times.sunrise | time-to-hours) + $offset_hours
+  let sunset = ($times.sunset | time-to-hours) + $offset_hours
+  let dusk = ($times.dusk | time-to-hours) + $offset_hours
+  let range = $max - $min
+
+  # Night time (before dawn or after dusk)
+  if $current < $dawn or $current > $dusk {
+    return $min
+  }
+
+  # Dawn transition (dawn -> sunrise)
+  if $current < $sunrise {
+    let progress = ($current - $dawn) / ($sunrise - $dawn)
+    return ($min + ($range * 0.3 * (smooth-step $progress)))
+  }
+
+  # Daytime (sunrise -> sunset): sine curve based on sun position
+  if $current < $sunset {
+    let day_length = $sunset - $sunrise
+    let sun_angle = (($current - $sunrise) / $day_length) * $PI
+    return ($min + ($range * ($sun_angle | math sin)))
+  }
+
+  # Dusk transition (sunset -> dusk)
+  let progress = ($current - $sunset) / ($dusk - $sunset)
+  $min + ($range * 0.3 * (1.0 - (smooth-step $progress)))
+}
+
+# Get current brightness (0.0-1.0)
+def get-brightness [backend: record] {
+  if $backend.type == "ddcci" {
+    let percent = (
+      ^ddcutil getvcp 10
+      | complete
+      | get stdout
+      | parse "VCP code {code} ({name}): current value = {value}, max value = {max}"
+      | first
+      | get value
+      | str trim
+      | into int
+    )
+    {normalized: ($percent / 100.0) percent: $percent}
+  } else if $backend.type == "backlight" {
+    let current = (open $"($backend.device)/brightness" | str trim | into int)
+    let max = (open $"($backend.device)/max_brightness" | str trim | into int)
+    let normalized = $current / $max
+    {normalized: $normalized percent: ($normalized * 100 | math round)}
+  } else {
+    error make {msg: $"Unknown backend type: ($backend.type)"}
+  }
+}
+
+# Set brightness (0.0-1.0)
+def set-brightness [target: float backend: record] {
+  if $backend.type == "ddcci" {
+    let percent = ($target * 100 | math round | into int)
+    ^ddcutil setvcp 10 $percent | complete | null
+    $percent
+  } else if $backend.type == "backlight" {
+    let max = (open $"($backend.device)/max_brightness" | into int)
+    let value = ($target * $max | math round | into int)
+    $value | save --force $"($backend.device)/brightness"
+    ($target * 100 | math round | into int)
+  } else {
+    error make {msg: $"Unknown backend type: ($backend.type)"}
+  }
+}
+
+# Smoothly transition brightness
+def transition-brightness [
+  current: float
+  target: float
+  backend: record
+  --max-step: float = 0.05
+  --step-delay: duration = 200ms
+] {
+  let diff = $target - $current
+  let abs_diff = $diff | math abs
+
+  if $abs_diff <= $max_step {
+    set-brightness $target $backend | null
+    return
+  }
+
+  let steps = $abs_diff / $max_step | math ceil | into int
+  let step_size = $diff / $steps
+
+  print $"<7>Transitioning in ($steps) steps"
+
+  1..$steps | each {|step|
+    let new_level = ($current + $step_size * $step) | clamp 0.0 1.0
+    set-brightness $new_level $backend | null
+    if $step < $steps { sleep $step_delay }
+  } | null
+
+  set-brightness $target $backend | null
+}
+
+# Check if the timer is stopped (postponed)
+def is-timer-stopped [] {
+  let result = ^systemctl --user is-active $TIMER_NAME err> /dev/null | complete
+  $result.stdout | str trim | $in != "active"
+}
+
+# Stop the timer to postpone adjustments
+def stop-timer [] {
+  let result = ^systemctl --user stop $TIMER_NAME | complete
+  $result.exit_code == 0
+}
+
+# Start the timer to resume adjustments
+def start-timer [] {
+  let was_stopped = is-timer-stopped
+  if $was_stopped {
+    ^systemctl --user start $TIMER_NAME | complete | null
+  }
+  $was_stopped
+}
+
+# Run brightness adjustment based on solar position
+def run-brightness-adjustment [config: record] {
+  let solar_times = get-solar-times --latitude $config.location.latitude --longitude $config.location.longitude --twilight-type $config.twilight_type
+  print $"<7>Solar: dawn=($solar_times.dawn), sunrise=($solar_times.sunrise), sunset=($solar_times.sunset), dusk=($solar_times.dusk)"
+
+  let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
+  let current = get-brightness $config.backend
+  let diff = ($target - $current.normalized) | math abs
+
+  print $"<7>Brightness: current=($current.normalized), target=($target), diff=($diff)"
+
+  if $diff > 0.01 {
+    print $"<6>Adjusting ($current.normalized) -> ($target)"
+    transition-brightness $current.normalized $target $config.backend --max-step $config.transition.max_step --step-delay $config.transition.step_delay
+    print $"<6>Transition complete"
+  } else {
+    print $"<7>Already at target level"
+  }
+}
+
+# Get systemd service configuration details
+def get-service-config [] {
+  let service_status = (^systemctl --user show solar-brightness.service --property=ExecStart | complete)
+  if $service_status.exit_code != 0 {
+    return {latitude: null longitude: null next_update: null error: "Service not found"}
+  }
+
+  let exec_start = ($service_status.stdout | str trim)
+
+  # Extract latitude and longitude from the service command
+  let lat_match = ($exec_start | parse --regex "--latitude ([0-9.-]+)")
+  let lon_match = ($exec_start | parse --regex "--longitude ([0-9.-]+)")
+
+  let latitude = if ($lat_match | length) > 0 {
+    $lat_match | get capture0 | first | into float
+  } else {
+    null
+  }
+
+  let longitude = if ($lon_match | length) > 0 {
+    $lon_match | get capture0 | first | into float
+  } else {
+    null
+  }
+
+  # Get next timer trigger
+  let timer_status = (^systemctl --user list-timers solar-brightness.timer --no-pager | complete)
+  let next_trigger = if $timer_status.exit_code == 0 {
+    let timer_lines = ($timer_status.stdout | lines | where $it != "" | skip 1)
+    if ($timer_lines | length) > 0 {
+      $timer_lines | first | str trim | split row " " | first
+    } else {
+      "No timer found"
+    }
+  } else {
+    "Timer not found"
+  }
+
+  {
+    latitude: $latitude
+    longitude: $longitude
+    next_update: $next_trigger
+    error: null
+  }
+}
+
+# Show information about solar brightness status
+def show-info [config: record] {
+  let now = date now
+  let current_time_str = $now | format date '%H:%M:%S'
+
+  # Get systemd service configuration
+  let service_config = get-service-config
+  let is_stopped = is-timer-stopped
+
+  # Use service coordinates if available, otherwise fall back to command coordinates
+  let effective_lat = if $service_config.error == null and $service_config.latitude != null {
+    $service_config.latitude
+  } else {
+    $config.location.latitude
+  }
+
+  let effective_lon = if $service_config.error == null and $service_config.longitude != null {
+    $service_config.longitude
+  } else {
+    $config.location.longitude
+  }
+
+  let solar_times = get-solar-times --latitude $effective_lat --longitude $effective_lon --twilight-type $config.twilight_type
+  let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
+  let current = get-brightness $config.backend
+  let diff = ($target - $current.normalized) | math abs
+
+  # Build location section
+  let location_section = if $service_config.error == null and $service_config.latitude != null {
+    $"Location:
+  Latitude:  ($service_config.latitude)°
+  Longitude: ($service_config.longitude)°"
+  } else {
+    $"Location \(fallback):
+  Latitude:  ($config.location.latitude)°
+  Longitude: ($config.location.longitude)°"
+  }
+
+  # Build status section
+  let status = if $is_stopped {
+    "Adjustments postponed (timer stopped)"
+  } else if $diff > 0.01 {
+    "Brightness adjustment needed"
+  } else {
+    "Already at target level"
+  }
+
+  # Build next update section
+  let next_update = if $is_stopped {
+    "Disabled (timer stopped)"
+  } else if $service_config.next_update != null and $service_config.next_update != "Unknown" {
+    $service_config.next_update
+  } else {
+    "Unknown (check timer status)"
+  }
+
+  # Calculate transition times
+  let offset_hours = ($config.solar_offset / 1hr)
+  let dawn_hour = ($solar_times.dawn | time-to-hours) + $offset_hours
+  let sunrise_hour = ($solar_times.sunrise | time-to-hours) + $offset_hours
+  let sunset_hour = ($solar_times.sunset | time-to-hours) + $offset_hours
+  let dusk_hour = ($solar_times.dusk | time-to-hours) + $offset_hours
+  let current_hour = $config.current_time
+
+  # Build transitions section
+  let transitions = if $current_hour < $dawn_hour {
+    $"  Next: Dawn transition starts at ($solar_times.dawn)"
+  } else if $current_hour < $sunrise_hour {
+    $"  Current: In dawn transition
+  Next: Sunrise at ($solar_times.sunrise)"
+  } else if $current_hour < $sunset_hour {
+    $"  Current: Daytime
+  Next: Sunset at ($solar_times.sunset)"
+  } else if $current_hour < $dusk_hour {
+    $"  Current: In dusk transition
+  Next: Night at ($solar_times.dusk)"
+  } else {
+    "  Current: Night
+  Next: Dawn tomorrow"
+  }
+
+  # Build postponed warning if needed
+  let postponed_header = if $is_stopped {
+    "⚠ ADJUSTMENTS POSTPONED - timer is stopped
+  Run 'solar-brightness resume' to restart and resume
+"
+  } else {
+    ""
+  }
+
+  let postponed_footer = if $is_stopped {
+    "
+Postponed until manually resumed
+  Run 'solar-brightness resume' to restart timer and adjust brightness"
+  } else {
+    ""
+  }
+
+  print $"Solar Brightness Information
+============================($postponed_header)Current Time: ($current_time_str)
+Backend: ($config.backend.name) \(($config.backend.type))($location_section)
+
+Configuration:
+  Twilight Type: ($config.twilight_type)
+  Solar Offset:  ($config.solar_offset)
+  Min Brightness: ($config.brightness.min) \(($config.brightness.min * 100 | math round)%)
+  Max Brightness: ($config.brightness.max) \(($config.brightness.max * 100 | math round)%)
+
+Solar Times \(UTC):
+  Dawn:        ($solar_times.dawn)
+  Sunrise:     ($solar_times.sunrise)
+  Solar Noon:  ($solar_times.solar_noon)
+  Sunset:      ($solar_times.sunset)
+  Dusk:        ($solar_times.dusk)
+
+Brightness:
+  Current:  ($current.normalized | math round -p 3) \(($current.percent)%)
+  Target:   ($target | math round -p 3) \(($target * 100 | math round)%)
+  Diff:     ($diff | math round -p 3) \(($diff * 100 | math round)%)
+
+Status: ($status)
+
+Next Automatic Update: ($next_update)
+
+Scheduled Transitions:($transitions)($postponed_footer)"
+}
+
+# Build config record from common parameters
+def build-config [
+  --latitude (-a): float = 51.4769
+  --longitude (-g): float = -0.0005
+  --twilight-type (-t): string = "civil"
+  --solar-offset (-o): duration = 0min
+  --min-brightness (-m): float = 0.1
+  --max-brightness (-M): float = 0.8
+  --transition-max-step (-s): float = 0.05
+  --transition-step-delay (-d): duration = 200ms
+  --with-backend
+] {
+  let now = date now
+  let time_str = $now | format date "%H:%M:%S"
+  let current_time = $time_str | time-to-hours
+
+  {
+    backend: (if $with_backend { detect-backend } else { null })
+    current_time: $current_time
+    location: {latitude: $latitude longitude: $longitude}
+    twilight_type: $twilight_type
+    brightness: {min: $min_brightness max: $max_brightness}
+    solar_offset: $solar_offset
+    transition: {max_step: $transition_max_step step_delay: $transition_step_delay}
+  }
+}
+
+# Solar-based brightness manager
+def main [] {
+  print "Solar-based brightness manager"
+  print "Use --help to see available subcommands"
+}
+
+# Adjust brightness based on solar position
+def "main adjust" [
+  --min-brightness (-m): float = 0.1
+  --max-brightness (-M): float = 0.8
+  --latitude (-a): float = 51.4769
+  --longitude (-g): float = -0.0005
+  --twilight-type (-t): string = "civil"
+  --solar-offset (-o): duration = 0min
+  --transition-max-step (-s): float = 0.05
+  --transition-step-delay (-d): duration = 200ms
+]: nothing -> any {
+  let config = (
+    build-config
+    --with-backend
+    --latitude $latitude
+    --longitude $longitude
+    --twilight-type $twilight_type
+    --solar-offset $solar_offset
+    --min-brightness $min_brightness
+    --max-brightness $max_brightness
+    --transition-max-step $transition_max_step
+    --transition-step-delay $transition_step_delay
+  )
+
+  let now = date now
+  print $"<6>Solar brightness manager (($config.backend.name)): ($now | format date '%H:%M')"
+  print $"<7>Backend: ($config.backend.type), Config: min=($min_brightness), max=($max_brightness)"
+
+  try {
+    run-brightness-adjustment $config
+  } catch {|err|
+    print $"<3>Error: ($err.msg)"
+    exit 1
+  }
+}
+
+# Show current status and target brightness without adjusting
+def "main info" [
+  --min-brightness (-m): float = 0.1
+  --max-brightness (-M): float = 0.8
+  --latitude (-a): float = 51.4769
+  --longitude (-g): float = -0.0005
+  --twilight-type (-t): string = "civil"
+  --solar-offset (-o): duration = 0min
+] {
+  let config = (
+    build-config
+    --with-backend
+    --latitude $latitude
+    --longitude $longitude
+    --twilight-type $twilight_type
+    --solar-offset $solar_offset
+    --min-brightness $min_brightness
+    --max-brightness $max_brightness
+  )
+
+  try {
+    show-info $config
+  } catch {|err|
+    print $"Error: ($err.msg)"
+    exit 1
+  }
+}
+
+# Postpone adjustments by stopping the systemd timer
+def "main postpone" [] {
+  if (stop-timer) {
+    print "Timer stopped - brightness adjustments postponed"
+    print "Run 'solar-brightness resume' to restart and resume adjustments"
+  } else {
+    print "Failed to stop timer"
+    exit 1
+  }
+}
+
+# Clear postpone and immediately adjust brightness
+def "main resume" [
+  --min-brightness (-m): float = 0.1
+  --max-brightness (-M): float = 0.8
+  --latitude (-a): float = 51.4769
+  --longitude (-g): float = -0.0005
+  --twilight-type (-t): string = "civil"
+  --solar-offset (-o): duration = 0min
+  --transition-max-step (-s): float = 0.05
+  --transition-step-delay (-d): duration = 200ms
+] {
+  if (start-timer) {
+    print "Timer started, brightness adjustments resumed"
+
+    let config = (
+      build-config
+      --with-backend
+      --latitude $latitude
+      --longitude $longitude
+      --twilight-type $twilight_type
+      --solar-offset $solar_offset
+      --min-brightness $min_brightness
+      --max-brightness $max_brightness
+      --transition-max-step $transition_max_step
+      --transition-step-delay $transition_step_delay
+    )
+
+    try {
+      run-brightness-adjustment $config
+    } catch {|err|
+      print $"<3>Error during adjustment: ($err.msg)"
+    }
+  } else {
+    print "Timer was already running"
+  }
+}
+
+# Tests
+
+def "main tests" [] {
+  print "Running tests..."
+
+  tests extract-time
+  tests time-to-hours
+  tests smooth-step
+  tests get-twilight-lines-civil
+  tests get-twilight-lines-nautical
+  tests get-twilight-lines-astronomical
+  tests get-twilight-lines-default
+  tests calculate-brightness-night-before-dawn
+  tests calculate-brightness-night-after-dusk
+  tests calculate-brightness-dawn-transition
+  tests calculate-brightness-daytime
+  tests calculate-brightness-dusk-transition
+  tests calculate-brightness-with-offset
+
+  print "Tests completed successfully"
+}
+
+def "tests extract-time" [] {
+  assert equal ("Sunrise is at: 2025-11-20 08:21:51 +01:00" | extract-time) "08:21:51"
+  assert equal ("Civil dawn is at: 2025-11-20 07:44:37 +01:00" | extract-time) "07:44:37"
+  assert equal ("Sunset is at: 2025-11-20 17:08:05 +01:00" | extract-time) "17:08:05"
+}
+
+def "tests time-to-hours" [] {
+  assert equal ("00:00:00" | time-to-hours) 0.0
+  assert equal ("12:00:00" | time-to-hours) 12.0
+
+  let result = "06:30:00" | time-to-hours
+  assert ((($result - 6.5) | math abs) < 0.001) "06:30 should be approximately 6.5 hours"
+
+  let result = "18:15:00" | time-to-hours
+  assert ((($result - 18.25) | math abs) < 0.001) "18:15 should be approximately 18.25 hours"
+}
+
+def "tests smooth-step" [] {
+  assert equal (smooth-step 0.0) 0.0
+  assert equal (smooth-step 1.0) 1.0
+  let mid = smooth-step 0.5
+  assert ($mid > 0.4 and $mid < 0.6)
+}
+
+def "tests get-twilight-lines-civil" [] {
+  let lines = [
+    "Sunrise is at: 08:00:00 UTC"
+    "Civil dawn is at: 07:30:00 UTC"
+    "Civil dusk is at: 18:30:00 UTC"
+    "Nautical dawn is at: 07:00:00 UTC"
+    "Nautical dusk is at: 19:00:00 UTC"
+    "Astronomical dawn is at: 06:30:00 UTC"
+    "Astronomical dusk is at: 19:30:00 UTC"
+    "Sunset is at: 18:00:00 UTC"
+  ]
+
+  let civil = get-twilight-lines $lines "civil"
+  assert str contains $civil.dawn "Civil dawn"
+  assert str contains $civil.dusk "Civil dusk"
+}
+
+def "tests get-twilight-lines-nautical" [] {
+  let lines = [
+    "Sunrise is at: 08:00:00 UTC"
+    "Civil dawn is at: 07:30:00 UTC"
+    "Civil dusk is at: 18:30:00 UTC"
+    "Nautical dawn is at: 07:00:00 UTC"
+    "Nautical dusk is at: 19:00:00 UTC"
+    "Astronomical dawn is at: 06:30:00 UTC"
+    "Astronomical dusk is at: 19:30:00 UTC"
+    "Sunset is at: 18:00:00 UTC"
+  ]
+
+  let nautical = get-twilight-lines $lines "nautical"
+  assert str contains $nautical.dawn "Nautical dawn"
+  assert str contains $nautical.dusk "Nautical dusk"
+}
+
+def "tests get-twilight-lines-astronomical" [] {
+  let lines = [
+    "Sunrise is at: 08:00:00 UTC"
+    "Civil dawn is at: 07:30:00 UTC"
+    "Civil dusk is at: 18:30:00 UTC"
+    "Nautical dawn is at: 07:00:00 UTC"
+    "Nautical dusk is at: 19:00:00 UTC"
+    "Astronomical dawn is at: 06:30:00 UTC"
+    "Astronomical dusk is at: 19:30:00 UTC"
+    "Sunset is at: 18:00:00 UTC"
+  ]
+
+  let astronomical = get-twilight-lines $lines "astronomical"
+  assert str contains $astronomical.dawn "Astronomical dawn"
+  assert str contains $astronomical.dusk "Astronomical dusk"
+}
+
+def "tests get-twilight-lines-default" [] {
+  let lines = [
+    "Sunrise is at: 08:00:00 UTC"
+    "Civil dawn is at: 07:30:00 UTC"
+    "Civil dusk is at: 18:30:00 UTC"
+    "Sunset is at: 18:00:00 UTC"
+  ]
+
+  let default = get-twilight-lines $lines "unknown"
+  assert str contains $default.dawn "Sunrise"
+  assert str contains $default.dusk "Sunset"
+}
+
+def "tests calculate-brightness-night-before-dawn" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 6.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert equal $brightness 0.1
+}
+
+def "tests calculate-brightness-night-after-dusk" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 20.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert equal $brightness 0.1
+}
+
+def "tests calculate-brightness-dawn-transition" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 7.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness >= 0.1 and $brightness < 0.4)
+
+  let brightness = calculate-brightness 7.5 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness > 0.1 and $brightness < 0.5)
+}
+
+def "tests calculate-brightness-daytime" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 13.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness > 0.7 and $brightness <= 0.9)
+
+  let brightness = calculate-brightness 10.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness > 0.3 and $brightness < 0.8)
+}
+
+def "tests calculate-brightness-dusk-transition" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 18.0 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness >= 0.1 and $brightness < 0.6) "Brightness at sunset should be between 0.1 and 0.6"
+
+  let brightness = calculate-brightness 18.5 $times --min 0.1 --max 0.8 --offset 0min
+  assert ($brightness >= 0.1 and $brightness < 0.4) "Brightness at mid-dusk should be between 0.1 and 0.4"
+}
+
+def "tests calculate-brightness-with-offset" [] {
+  let times = {
+    dawn: "07:00:00"
+    sunrise: "08:00:00"
+    sunset: "18:00:00"
+    dusk: "19:00:00"
+  }
+
+  let brightness = calculate-brightness 6.5 $times --min 0.1 --max 0.8 --offset 30min
+  assert ($brightness >= 0.1 and $brightness < 0.4)
+}
