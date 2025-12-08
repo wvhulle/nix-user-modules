@@ -1,15 +1,9 @@
 #!/usr/bin/env nu
 
 # Solar-based brightness manager
-# Hardware-agnostic with automatic backend detection and smooth transitions
+# Hardware-agnostic with automatic backend detection
 
 use std assert
-
-# Clamp a value between min and max bounds
-def clamp [min_val: float max_val: float]: float -> float {
-  let clamped_low = ([$min_val $in] | math max)
-  [$clamped_low $max_val] | math min
-}
 
 const PI = 3.14159265359
 const SERVICE_NAME = "solar-brightness.service"
@@ -43,58 +37,53 @@ def parse-ddc-displays [output: string]: nothing -> list {
   $displays
 }
 
+# Detect DDC/CI backends from ddcutil
+def detect-ddcci-backends []: nothing -> list<record> {
+  let result = ddcutil detect | complete
+  if $result.exit_code != 0 { return [] }
+
+  parse-ddc-displays $result.stdout | each {|display|
+    {name: $"DDC/CI ($display.model)" type: "ddcci" display: $display.display}
+  }
+}
+
+# Detect KDE PowerManagement backend
+def detect-kde-backend []: nothing -> list<record> {
+  let result = qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl brightness | complete
+  if $result.exit_code == 0 {
+    [
+      {name: "KDE PowerManagement" type: "kde"}
+    ]
+  } else {
+    []
+  }
+}
+
+# Detect backlight backends from sysfs
+def detect-backlight-backends []: nothing -> list<record> {
+  let backlight_path = "/sys/class/backlight"
+  if not ($backlight_path | path exists) { return [] }
+
+  ls $backlight_path | get name | each {|device|
+    {name: $"Backlight ($device | path basename)" type: "backlight" device: $device}
+  }
+}
+
 # Detect all brightness control backends (supports multiple screens)
-def detect-backends []: nothing -> list {
-  mut backends = []
+def detect-backends []: nothing -> list<record> {
+  let ddcci = detect-ddcci-backends
+  let kde = detect-kde-backend
+  # Skip backlight if KDE is available (KDE handles the panel directly)
+  let backlight = if ($kde | is-empty) { detect-backlight-backends } else { [] }
 
-  # Detect DDC/CI displays
-  let ddc_result = ddcutil detect | complete
-  if $ddc_result.exit_code == 0 {
-    let displays = parse-ddc-displays $ddc_result.stdout
+  let backends = $ddcci | append $kde | append $backlight
 
-    for display in $displays {
-      $backends = (
-        $backends | append {
-          name: $"DDC/CI ($display.model)"
-          type: "ddcci"
-          display: $display.display
-        }
-      )
+  if ($backends | is-empty) {
+    error make {
+      msg: "No brightness control backend found"
+      label: {text: "backend detection failed" span: (metadata $backends).span}
+      help: "Ensure ddcutil, brightnessctl, or KDE PowerManagement is available"
     }
-  }
-
-  # Detect KDE PowerManagement brightness control (for OLED panels etc.)
-  # Check this BEFORE backlight since KDE handles the actual display on some systems
-  let kde_result = qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl brightness | complete
-  let has_kde = $kde_result.exit_code == 0
-  if $has_kde {
-    $backends = (
-      $backends | append {
-        name: "KDE PowerManagement"
-        type: "kde"
-      }
-    )
-  }
-
-  # Detect backlight devices (skip if KDE is available - KDE handles the panel)
-  if not $has_kde {
-    let backlight_path = "/sys/class/backlight"
-    if ($backlight_path | path exists) {
-      let devices = ls $backlight_path | get name
-      for device in $devices {
-        $backends = (
-          $backends | append {
-            name: $"Backlight ($device | path basename)"
-            type: "backlight"
-            device: $device
-          }
-        )
-      }
-    }
-  }
-
-  if ($backends | length) == 0 {
-    error make {msg: "No brightness control backend found"}
   }
 
   $backends
@@ -110,7 +99,7 @@ def extract-time []: string -> any {
 }
 
 # Get dawn/dusk lines based on twilight type
-def get-twilight-lines [lines: list<string> twilight: string] {
+def get-twilight-lines [lines: list<string> twilight: string]: nothing -> record {
   let prefix = match $twilight {
     "civil" => "Civil"
     "nautical" => "Nautical"
@@ -132,11 +121,15 @@ def get-twilight-lines [lines: list<string> twilight: string] {
 }
 
 # Get solar times from heliocron
-def get-solar-times [--latitude: float --longitude: float --twilight-type: string] {
-  let output = (^heliocron --latitude $latitude --longitude $longitude report | complete)
+def get-solar-times [--latitude: float --longitude: float --twilight-type: string]: nothing -> record {
+  let output = (heliocron --latitude $latitude --longitude $longitude report | complete)
 
   if $output.exit_code != 0 {
-    error make {msg: $"Failed to get solar times: ($output.stderr)"}
+    error make {
+      msg: $"Failed to get solar times: ($output.stderr)"
+      label: {text: "heliocron command failed" span: (metadata $latitude).span}
+      help: "Check that heliocron is installed and latitude/longitude are valid"
+    }
   }
 
   let lines = ($output.stdout | lines)
@@ -152,7 +145,7 @@ def get-solar-times [--latitude: float --longitude: float --twilight-type: strin
 }
 
 # Convert time string (HH:MM:SS) to hours since midnight
-def time-to-hours [] {
+def time-to-hours []: string -> float {
   let parts = $in | split row ":"
   let hours = $parts | first | into float
   let minutes = $parts | get 1 | into float
@@ -160,7 +153,7 @@ def time-to-hours [] {
 }
 
 # Calculate smooth transition progress using cosine interpolation
-def smooth-step [progress: float] {
+def smooth-step [progress: float]: nothing -> float {
   (1.0 - (($progress * $PI) | math cos)) / 2.0
 }
 
@@ -171,7 +164,7 @@ def calculate-brightness [
   --min: float
   --max: float
   --offset: duration
-] {
+]: nothing -> float {
   let offset_hours = ($offset / 1hr)
   let dawn = ($times.dawn | time-to-hours) + $offset_hours
   let sunrise = ($times.sunrise | time-to-hours) + $offset_hours
@@ -202,149 +195,112 @@ def calculate-brightness [
   $min + ($range * 0.3 * (1.0 - (smooth-step $progress)))
 }
 
+# Brightness result record type helper
+def brightness-error [msg: string]: nothing -> record {
+  {
+    normalized: 0.0
+    percent: 0
+    error: $msg
+  }
+}
+
+# Get DDC/CI brightness
+def get-ddcci-brightness [backend: record]: nothing -> record {
+  let display_arg = $backend | get -o display | default 1
+  let result = ddcutil getvcp 10 --display $display_arg | complete
+  if $result.exit_code != 0 {
+    return (brightness-error $"Failed to get DDC/CI brightness: ($result.stderr)")
+  }
+  let percent = (
+    $result.stdout
+    | parse "VCP code {code} ({name}): current value = {value}, max value = {max}"
+    | first
+    | get value
+    | str trim
+    | into int
+  )
+  {normalized: ($percent / 100.0) percent: $percent}
+}
+
+# Get backlight brightness
+def get-backlight-brightness [backend: record]: nothing -> record {
+  let device_name = $backend.device | path basename
+  let result = brightnessctl -d $device_name info | complete
+  if $result.exit_code != 0 {
+    return (brightness-error $"Failed to get backlight brightness: ($result.stderr)")
+  }
+  let parsed = $result.stdout | parse --regex "Current brightness: (\\d+) \\((\\d+)%\\)"
+  let percent = $parsed | first | get capture1 | into int
+  {normalized: ($percent / 100.0) percent: $percent}
+}
+
+# Get KDE PowerManagement brightness
+def get-kde-brightness []: nothing -> record {
+  let result = qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl brightness | complete
+  if $result.exit_code != 0 {
+    return (brightness-error $"Failed to get KDE brightness: ($result.stderr)")
+  }
+  let value = $result.stdout | str trim | into int
+  let percent = ($value / 100) | into int
+  {normalized: ($value / 10000.0) percent: $percent}
+}
+
 # Get current brightness (0.0-1.0) for a single backend
-def get-brightness [backend: record] {
-  if $backend.type == "ddcci" {
-    let display_arg = if ($backend | get -o display) != null { $backend.display } else { 1 }
-    let result = ddcutil getvcp 10 --display $display_arg | complete
-    if $result.exit_code != 0 {
-      return {normalized: 0.0 percent: 0 error: $"Failed to get brightness: ($result.stderr)"}
+def get-brightness [backend: record]: nothing -> record {
+  match $backend.type {
+    "ddcci" => { get-ddcci-brightness $backend }
+    "backlight" => { get-backlight-brightness $backend }
+    "kde" => { get-kde-brightness }
+    _ => {
+      error make {
+        msg: $"Unknown backend type: ($backend.type)"
+        label: {text: "unsupported type" span: (metadata $backend).span}
+        help: "Supported types: ddcci, backlight, kde"
+      }
     }
-    let percent = (
-      $result.stdout
-      | parse "VCP code {code} ({name}): current value = {value}, max value = {max}"
-      | first
-      | get value
-      | str trim
-      | into int
-    )
-    {normalized: ($percent / 100.0) percent: $percent}
-  } else if $backend.type == "backlight" {
-    let device_name = $backend.device | path basename
-    let result = brightnessctl -d $device_name info | complete
-    if $result.exit_code != 0 {
-      return {normalized: 0.0 percent: 0 error: $"Failed to get brightness: ($result.stderr)"}
-    }
-    let parsed = $result.stdout | parse --regex "Current brightness: (\\d+) \\((\\d+)%\\)"
-    let percent = $parsed | first | get capture1 | into int
-    {normalized: ($percent / 100.0) percent: $percent}
-  } else if $backend.type == "kde" {
-    let result = qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl brightness | complete
-    if $result.exit_code != 0 {
-      return {normalized: 0.0 percent: 0 error: $"Failed to get KDE brightness: ($result.stderr)"}
-    }
-    let value = $result.stdout | str trim | into int
-    let percent = ($value / 100) | into int
-    {normalized: ($value / 10000.0) percent: $percent}
-  } else {
-    error make {msg: $"Unknown backend type: ($backend.type)"}
   }
-}
-
-# Get brightness for all backends
-def get-all-brightness [backends: list] {
-  $backends | each {|backend|
-    let brightness = get-brightness $backend
-    {backend: $backend brightness: $brightness}
-  }
-}
-
-# Set brightness (0.0-1.0) for a single backend
-def set-brightness [target: float backend: record] {
-  if $backend.type == "ddcci" {
-    let percent = ($target * 100 | math round | into int)
-    let display_arg = if ($backend | get -o display) != null { $backend.display } else { 1 }
-    # Use --noverify to skip verification read (much faster)
-    let result = ddcutil setvcp 10 $percent --display $display_arg --noverify | complete
-    if $result.exit_code != 0 {
-      print $"<warning>DDC/CI set failed: ($result.stderr | str trim)"
-    }
-    $percent
-  } else if $backend.type == "backlight" {
-    let percent = ($target * 100 | math round | into int)
-    let device_name = $backend.device | path basename
-    let result = brightnessctl -d $device_name set $"($percent)%" | complete
-    if $result.exit_code != 0 {
-      print $"<warning>Backlight set failed: ($result.stderr | str trim)"
-    }
-    $percent
-  } else {
-    error make {msg: $"Unknown backend type: ($backend.type)"}
-  }
-}
-
-# Set brightness for all backends
-def set-all-brightness [target: float backends: list] {
-  $backends | each {|backend|
-    set-brightness $target $backend
-  }
-}
-
-# Smoothly transition brightness for a single backend
-def transition-brightness [
-  current: float
-  target: float
-  backend: record
-  --max-step: float = 0.05
-  --step-delay: duration = 200ms
-] {
-  let diff = $target - $current
-  let abs_diff = $diff | math abs
-
-  if $abs_diff <= $max_step {
-    set-brightness $target $backend | null
-    return
-  }
-
-  let steps = $abs_diff / $max_step | math ceil | into int
-  let step_size = $diff / $steps
-
-  print $"<7>Transitioning ($backend.name) in ($steps) steps"
-
-  1..$steps | each {|step|
-    let new_level = ($current + $step_size * $step) | clamp 0.0 1.0
-    set-brightness $new_level $backend | null
-    if $step < $steps { sleep $step_delay }
-  } | null
-
-  set-brightness $target $backend | null
 }
 
 # Set brightness for all backends directly (no smooth transition)
-def set-all-brightness-direct [backends_with_current: list target: float] {
+def set-all-brightness-direct [backends_with_current: list, target: float] {
+  let percent = ($target * 100 | math round | into int)
   for item in $backends_with_current {
-    print $"<7>Setting ($item.backend.name) to ($target | math round -p 2)"
-    let percent = ($target * 100 | math round | into int)
-    if $item.backend.type == "ddcci" {
-      let display_arg = if ($item.backend | get -o display) != null { $item.backend.display } else { 1 }
-      ddcutil setvcp 10 $percent --display $display_arg --noverify | complete | ignore
-    } else if $item.backend.type == "backlight" {
-      let device_name = $item.backend.device | path basename
-      brightnessctl -d $device_name set $"($percent)%" | complete | ignore
-    } else if $item.backend.type == "kde" {
-      let kde_value = ($target * 10000 | math round | into int)
-      qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl setBrightness $kde_value | complete | ignore
+    print -e $"Setting ($item.backend.name) to ($target | math round -p 2)"
+    match $item.backend.type {
+      "ddcci" => {
+        let display_arg = if ($item.backend | get -o display) != null { $item.backend.display } else { 1 }
+        ddcutil setvcp 10 $percent --display $display_arg --noverify | complete | null
+      }
+      "backlight" => {
+        let device_name = $item.backend.device | path basename
+        brightnessctl -d $device_name set $"($percent)%" | complete | null
+      }
+      "kde" => {
+        let kde_value = ($target * 10000 | math round | into int)
+        qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl setBrightness $kde_value | complete | null
+      }
+      _ => { }
     }
   }
 }
 
 # Check if the timer is stopped (postponed)
-def is-timer-stopped [] {
-  let result = ^systemctl --user is-active $TIMER_NAME err> /dev/null | complete
+def is-timer-stopped []: nothing -> bool {
+  let result = systemctl --user is-active $TIMER_NAME | complete
   $result.stdout | str trim | $in != "active"
 }
 
 # Stop the timer to postpone adjustments
-def stop-timer [] {
-  let result = ^systemctl --user stop $TIMER_NAME | complete
+def stop-timer []: nothing -> bool {
+  let result = systemctl --user stop $TIMER_NAME | complete
   $result.exit_code == 0
 }
 
 # Start the timer to resume adjustments
-def start-timer [] {
+def start-timer []: nothing -> bool {
   let was_stopped = is-timer-stopped
   if $was_stopped {
-    ^systemctl --user start $TIMER_NAME | complete | null
+    systemctl --user start $TIMER_NAME | complete | null
   }
   $was_stopped
 }
@@ -352,14 +308,14 @@ def start-timer [] {
 # Run brightness adjustment based on solar position for all screens
 def run-brightness-adjustment [config: record] {
   let solar_times = get-solar-times --latitude $config.location.latitude --longitude $config.location.longitude --twilight-type $config.twilight_type
-  print $"<7>Solar: dawn=($solar_times.dawn), sunrise=($solar_times.sunrise), sunset=($solar_times.sunset), dusk=($solar_times.dusk)"
+  print $"<debug>Solar: dawn=($solar_times.dawn), sunrise=($solar_times.sunrise), sunset=($solar_times.sunset), dusk=($solar_times.dusk)"
 
   let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
 
   # Get current brightness for all backends
   let backends_with_current = $config.backends | each {|backend|
     let brightness = get-brightness $backend
-    print $"<7>($backend.name): current=($brightness.normalized | math round -p 2), target=($target | math round -p 2)"
+    print $"<debug>($backend.name): current=($brightness.normalized | math round -p 2), target=($target | math round -p 2)"
     {backend: $backend current: $brightness.normalized}
   }
 
@@ -371,56 +327,49 @@ def run-brightness-adjustment [config: record] {
 
   if $needs_adjustment {
     let screen_count = $backends_with_current | length
-    print $"<6>Adjusting ($screen_count) screens to target ($target | math round -p 2)"
+    print $"<info>Adjusting ($screen_count) screens to target ($target | math round -p 2)"
     set-all-brightness-direct $backends_with_current $target
-    print $"<6>Adjustment complete for all screens"
+    print $"<info>Adjustment complete for all screens"
   } else {
-    print $"<7>All screens already at target level"
+    print $"<debug>All screens already at target level"
   }
 }
 
 # Get systemd service configuration details
-def get-service-config [] {
-  let service_status = (^systemctl --user show solar-brightness.service --property=ExecStart | complete)
-  if $service_status.exit_code != 0 {
+# Parse latitude from service ExecStart string
+def parse-service-latitude [exec_start: string]: nothing -> any {
+  let match = $exec_start | parse --regex "--latitude ([0-9.-]+)"
+  if ($match | is-not-empty) { $match | get capture0 | first | into float } else { null }
+}
+
+# Parse longitude from service ExecStart string
+def parse-service-longitude [exec_start: string]: nothing -> any {
+  let match = $exec_start | parse --regex "--longitude ([0-9.-]+)"
+  if ($match | is-not-empty) { $match | get capture0 | first | into float } else { null }
+}
+
+# Get next timer trigger time
+def get-next-timer-trigger []: nothing -> string {
+  let result = systemctl --user list-timers solar-brightness.timer --no-pager | complete
+  if $result.exit_code != 0 { return "Timer not found" }
+
+  let timer_lines = $result.stdout | lines | where $it != "" | skip 1
+  if ($timer_lines | is-empty) { return "No timer found" }
+  $timer_lines | first | str trim | split row " " | first
+}
+
+# Get systemd service configuration details
+def get-service-config []: nothing -> record {
+  let result = systemctl --user show solar-brightness.service --property=ExecStart | complete
+  if $result.exit_code != 0 {
     return {latitude: null longitude: null next_update: null error: "Service not found"}
   }
 
-  let exec_start = ($service_status.stdout | str trim)
-
-  # Extract latitude and longitude from the service command
-  let lat_match = ($exec_start | parse --regex "--latitude ([0-9.-]+)")
-  let lon_match = ($exec_start | parse --regex "--longitude ([0-9.-]+)")
-
-  let latitude = if ($lat_match | length) > 0 {
-    $lat_match | get capture0 | first | into float
-  } else {
-    null
-  }
-
-  let longitude = if ($lon_match | length) > 0 {
-    $lon_match | get capture0 | first | into float
-  } else {
-    null
-  }
-
-  # Get next timer trigger
-  let timer_status = (^systemctl --user list-timers solar-brightness.timer --no-pager | complete)
-  let next_trigger = if $timer_status.exit_code == 0 {
-    let timer_lines = ($timer_status.stdout | lines | where $it != "" | skip 1)
-    if ($timer_lines | length) > 0 {
-      $timer_lines | first | str trim | split row " " | first
-    } else {
-      "No timer found"
-    }
-  } else {
-    "Timer not found"
-  }
-
+  let exec_start = $result.stdout | str trim
   {
-    latitude: $latitude
-    longitude: $longitude
-    next_update: $next_trigger
+    latitude: (parse-service-latitude $exec_start)
+    longitude: (parse-service-longitude $exec_start)
+    next_update: (get-next-timer-trigger)
     error: null
   }
 }
@@ -436,7 +385,7 @@ def format-backend-brightness [backend: record target: float]: nothing -> string
 }
 
 # Build transitions section based on current time
-def build-transitions-section [current_hour: float solar_times: record offset_hours: float]: nothing -> string {
+def build-transitions-section [current_hour: float solar_times: record --offset-hours: float]: nothing -> string {
   let dawn_hour = ($solar_times.dawn | time-to-hours) + $offset_hours
   let sunrise_hour = ($solar_times.sunrise | time-to-hours) + $offset_hours
   let sunset_hour = ($solar_times.sunset | time-to-hours) + $offset_hours
@@ -446,77 +395,78 @@ def build-transitions-section [current_hour: float solar_times: record offset_ho
     $"  Next: Dawn transition starts at ($solar_times.dawn)"
   } else if $current_hour < $sunrise_hour {
     $"  Current: In dawn transition\n  Next: Sunrise at ($solar_times.sunrise)"
-  } else if $current_hour < $sunset_hour {
-    $"  Current: Daytime\n  Next: Sunset at ($solar_times.sunset)"
   } else if $current_hour < $dusk_hour {
-    $"  Current: In dusk transition\n  Next: Night at ($solar_times.dusk)"
+    $"  Current: Daytime\n  Next: Sunset at ($solar_times.sunset)"
   } else {
     "  Current: Night\n  Next: Dawn tomorrow"
   }
 }
 
+# Get effective location from service config or fallback
+def get-effective-location [service_config: record fallback: record]: nothing -> record {
+  let latitude = if $service_config.error == null and $service_config.latitude != null {
+    $service_config.latitude
+  } else {
+    $fallback.latitude
+  }
+  let longitude = if $service_config.error == null and $service_config.longitude != null {
+    $service_config.longitude
+  } else {
+    $fallback.longitude
+  }
+  {latitude: $latitude longitude: $longitude}
+}
+
+# Format location section for display
+def format-location-section [service_config: record fallback: record]: nothing -> string {
+  if $service_config.error == null and $service_config.latitude != null {
+    $"Location: ($service_config.latitude)°, ($service_config.longitude)°"
+  } else {
+    $"Location \(fallback): ($fallback.latitude)°, ($fallback.longitude)°"
+  }
+}
+
+# Determine adjustment status message
+def get-adjustment-status [is_stopped: bool backends: list --target: float]: nothing -> string {
+  if $is_stopped { return "Adjustments postponed (timer stopped)" }
+
+  let any_needs_adjustment = $backends | any {|backend|
+    let brightness = get-brightness $backend
+    (($target - $brightness.normalized) | math abs) > 0.01
+  }
+
+  if $any_needs_adjustment { "Brightness adjustment needed" } else { "All screens at target level" }
+}
+
 # Show information about solar brightness status
 def show-info [config: record] {
   let now = date now
-  let current_time_str = $now | format date '%H:%M:%S'
   let service_config = get-service-config
   let is_stopped = is-timer-stopped
 
-  let effective_lat = if $service_config.error == null and $service_config.latitude != null {
-    $service_config.latitude
-  } else {
-    $config.location.latitude
-  }
-
-  let effective_lon = if $service_config.error == null and $service_config.longitude != null {
-    $service_config.longitude
-  } else {
-    $config.location.longitude
-  }
-
-  let solar_times = get-solar-times --latitude $effective_lat --longitude $effective_lon --twilight-type $config.twilight_type
+  let effective = get-effective-location $service_config $config.location
+  let solar_times = get-solar-times --latitude $effective.latitude --longitude $effective.longitude --twilight-type $config.twilight_type
   let target = calculate-brightness $config.current_time $solar_times --min $config.brightness.min --max $config.brightness.max --offset $config.solar_offset
 
-  # Build backends section
   let backends_info = $config.backends | each {|backend| format-backend-brightness $backend $target } | str join "\n"
-  let backend_names = $config.backends | get name | str join ", "
-
-  let location_section = if $service_config.error == null and $service_config.latitude != null {
-    $"Location: ($service_config.latitude)°, ($service_config.longitude)°"
-  } else {
-    $"Location \(fallback): ($config.location.latitude)°, ($config.location.longitude)°"
-  }
-
-  let any_needs_adjustment = $config.backends | any {|backend|
-    let brightness = get-brightness $backend
-    let diff = ($target - $brightness.normalized) | math abs
-    $diff > 0.01
-  }
-
-  let status = if $is_stopped {
-    "Adjustments postponed (timer stopped)"
-  } else if $any_needs_adjustment {
-    "Brightness adjustment needed"
-  } else { "All screens at target level" }
-
-  let next_update = if $is_stopped {
-    "Disabled (timer stopped)"
-  } else if $service_config.next_update != null and $service_config.next_update != "Unknown" {
-    $service_config.next_update
-  } else { "Unknown (check timer status)" }
-
-  let offset_hours = ($config.solar_offset / 1hr)
-  let transitions = build-transitions-section $config.current_time $solar_times $offset_hours
-
+  let status = get-adjustment-status $is_stopped $config.backends --target $target
+  let next_update = if $is_stopped { "Disabled (timer stopped)" } else { $service_config.next_update | default "Unknown" }
+  let transitions = build-transitions-section $config.current_time $solar_times --offset-hours ($config.solar_offset / 1hr)
   let postponed_note = if $is_stopped { "\nRun 'solar-brightness resume' to restart" } else { "" }
 
-  print $"Solar Brightness Information
+  let time_str = $now | format date '%H:%M:%S'
+  let location_str = format-location-section $service_config $config.location
+  let backend_names = $config.backends | get name | str join ", "
+  let target_rounded = $target | math round -p 3
+  let target_percent = $target * 100 | math round
+
+  print $"<info>Solar Brightness Information
 ============================
-Time: ($current_time_str) | ($location_section)
+Time: ($time_str) | ($location_str)
 Backends: ($backend_names)
 
 Solar Times: Dawn ($solar_times.dawn) | Sunrise ($solar_times.sunrise) | Sunset ($solar_times.sunset) | Dusk ($solar_times.dusk)
-Target Brightness: ($target | math round -p 3) \(($target * 100 | math round)%)
+Target Brightness: ($target_rounded) \(($target_percent)%)
 
 Screen Brightness:($backends_info)
 
@@ -536,7 +486,7 @@ def build-config [
   --transition-max-step (-s): float = 0.05
   --transition-step-delay (-d): duration = 200ms
   --with-backends
-] {
+]: nothing -> record {
   let now = date now
   let time_str = $now | format date "%H:%M:%S"
   let current_time = $time_str | time-to-hours
@@ -554,8 +504,8 @@ def build-config [
 
 # Solar-based brightness manager
 def main [] {
-  print "Solar-based brightness manager"
-  print "Use --help to see available subcommands"
+  print "<info>Solar-based brightness manager"
+  print "<info>Use --help to see available subcommands"
 }
 
 # Adjust brightness based on solar position
@@ -584,16 +534,11 @@ def "main adjust" [
 
   let now = date now
   let backend_names = $config.backends | get name | str join ", "
-  print $"<6>Solar brightness manager: ($now | format date '%H:%M')"
-  print $"<7>Backends: ($backend_names)"
-  print $"<7>Config: min=($min_brightness), max=($max_brightness)"
+  print -e $"Solar brightness manager: ($now | format date '%H:%M')"
+  print -e $"Backends: ($backend_names)"
+  print -e $"Config: min=($min_brightness), max=($max_brightness)"
 
-  try {
-    run-brightness-adjustment $config
-  } catch {|err|
-    print $"<3>Error: ($err.msg)"
-    exit 1
-  }
+  run-brightness-adjustment $config
 }
 
 # Show current status and target brightness without adjusting
@@ -604,7 +549,7 @@ def "main info" [
   --longitude (-g): float = -0.0005
   --twilight-type (-t): string = "civil"
   --solar-offset (-o): duration = 0min
-] {
+]: nothing -> nothing {
   let config = (
     build-config
     --with-backends
@@ -616,22 +561,20 @@ def "main info" [
     --max-brightness $max_brightness
   )
 
-  try {
-    show-info $config
-  } catch {|err|
-    print $"Error: ($err.msg)"
-    exit 1
-  }
+  show-info $config
 }
 
 # Postpone adjustments by stopping the systemd timer
 def "main postpone" [] {
   if (stop-timer) {
-    print "Timer stopped - brightness adjustments postponed"
-    print "Run 'solar-brightness resume' to restart and resume adjustments"
+    print "<info>Timer stopped - brightness adjustments postponed"
+    print "<info>Run 'solar-brightness resume' to restart and resume adjustments"
   } else {
-    print "Failed to stop timer"
-    exit 1
+    error make {
+      msg: "Failed to stop timer"
+      label: {text: "timer stop failed" span: (metadata stop-timer).span}
+      help: "Check systemctl --user status solar-brightness.timer"
+    }
   }
 }
 
@@ -645,9 +588,9 @@ def "main resume" [
   --solar-offset (-o): duration = 0min
   --transition-max-step (-s): float = 0.05
   --transition-step-delay (-d): duration = 200ms
-] {
+]: nothing -> nothing {
   if (start-timer) {
-    print "Timer started, brightness adjustments resumed"
+    print "<info>Timer started, brightness adjustments resumed"
 
     let config = (
       build-config
@@ -663,19 +606,19 @@ def "main resume" [
     )
 
     try {
-      run-brightness-adjustment $config
+      run-brightness-adjustment $config | null
     } catch {|err|
-      print $"<3>Error during adjustment: ($err.msg)"
+      print $"<err>Error during adjustment: ($err.msg)"
     }
   } else {
-    print "Timer was already running"
+    print "<info>Timer was already running"
   }
 }
 
 # Tests
 
 def "main tests" [] {
-  print "Running tests..."
+  print "<info>Running tests..."
 
   tests extract-time
   tests time-to-hours
@@ -691,7 +634,7 @@ def "main tests" [] {
   tests calculate-brightness-dusk-transition
   tests calculate-brightness-with-offset
 
-  print "Tests completed successfully"
+  print "<info>Tests completed successfully"
 }
 
 def "tests extract-time" [] {
