@@ -7,7 +7,7 @@ _: {
     ./git-extended.nix
     ./helix-extended.nix
     ./keyboard-action
-    ./konsole.nix
+    ./konsole-extended.nix
     ./mcp.nix
     ./nushell-extended.nix
     ./rust-extended.nix

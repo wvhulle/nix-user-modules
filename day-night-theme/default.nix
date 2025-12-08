@@ -180,6 +180,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    home.packages = [
+      (pkgs.makeDesktopItem {
+        name = "darkman-toggle";
+        desktopName = "Toggle Dark Mode";
+        comment = "Toggle between light and dark themes";
+        exec = "${pkgs.darkman}/bin/darkman toggle";
+        icon = "fill-color";
+        terminal = false;
+        type = "Application";
+        categories = [
+          "Settings"
+          "DesktopSettings"
+        ];
+        startupNotify = false;
+      })
+    ];
+
     services.darkman = {
       enable = true;
 
