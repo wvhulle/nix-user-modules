@@ -160,6 +160,10 @@ in
             name = "rust";
             language-servers = [ "rust-analyzer" ];
           }
+          {
+            name = "typst";
+            language-servers = [ "tinymist" ];
+          }
         ]
         ++ cfg.additionalLanguages;
 
@@ -183,6 +187,19 @@ in
                 # ];
               };
             };
+          };
+
+          tinymist = {
+            # Open preview with `tinymist preview slides.typ`
+            command = "tinymist";
+            config = {
+              preview.background.enabled = true;
+              preview.background.args = [
+                "--data-plane-host=127.0.0.1:23635"
+                "--open"
+              ];
+            };
+
           };
         }
         // cfg.additionalLanguageServers;
