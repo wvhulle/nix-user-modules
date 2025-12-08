@@ -262,7 +262,7 @@ def get-brightness [backend: record]: nothing -> record {
 }
 
 # Set brightness for all backends directly (no smooth transition)
-def set-all-brightness-direct [backends_with_current: list, target: float] {
+def set-all-brightness-direct [backends_with_current: list target: float] {
   let percent = ($target * 100 | math round | into int)
   for item in $backends_with_current {
     print -e $"Setting ($item.backend.name) to ($target | math round -p 2)"
