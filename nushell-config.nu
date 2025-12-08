@@ -56,7 +56,55 @@ $env.config.hooks.command_not_found = {|command_name|
 }
 
 $env.config.hooks = ($env.config.hooks | default [] pre_prompt)
-$env.config.hooks.pre_prompt = (
-  $env.config.hooks.pre_prompt
-  | append {|| refresh-theme; notify-long-command }
+# Declarative integrations using official methods
+
+# Atuin integration - source official init script
+source ~/.local/share/atuin/init.nu
+
+# Zoxide integration
+def --env __zoxide_z [...rest: string] {
+  let arg0 = ($rest | append '~').0
+  let path = if (($rest | length) <= 1) and ($arg0 == '~' or ($arg0 | path expand | path type) == dir) {
+    $arg0
+  } else {
+    (zoxide query --exclude $env.PWD -- ...$rest | str trim -r -c "\n")
+  }
+  cd $path
+}
+
+def --env __zoxide_zi [...rest: string] {
+  cd $"(zoxide query -i -- ...$rest | str trim -r -c "\n")"
+}
+
+alias z = __zoxide_z
+alias zi = __zoxide_zi
+
+# Setup hooks using idiomatic nushell pattern
+$env.config = (
+  $env.config | upsert hooks {
+    # Preserve existing hooks and add new ones
+    let current_hooks = ($env.config.hooks? | default {})
+
+    $current_hooks | upsert env_change {
+      let current_env_change = ($current_hooks.env_change? | default {})
+
+      $current_env_change | upsert PWD (
+        ($current_env_change.PWD? | default [])
+        | append {||
+          # Direnv hook
+          if (which direnv | is-empty) {
+            return
+          }
+          direnv export json | from json | default {} | load-env
+        }
+        | append {||
+          # Zoxide database update
+          zoxide add -- $env.PWD
+        }
+      )
+    } | upsert pre_prompt (
+      ($current_hooks.pre_prompt? | default [])
+      | append {|| refresh-theme; notify-long-command }
+    )
+  }
 )

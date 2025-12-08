@@ -58,7 +58,7 @@ in
     programs.direnv = {
       enable = true;
       inherit (cfg) package;
-      enableNushellIntegration = true;
+      enableNushellIntegration = false;
       enableBashIntegration = true;
       enableFishIntegration = true;
 
