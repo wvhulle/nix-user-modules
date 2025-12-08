@@ -1,14 +1,7 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, pkgs, ... }:
 
-let
-  cfg = config.programs.direnv-extended;
-in
-{
+let cfg = config.programs.direnv-extended;
+in {
   options.programs.direnv-extended = {
     enable = lib.mkEnableOption "extended direnv configuration";
 
@@ -21,7 +14,8 @@ in
     silentMode = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Whether to enable silent mode (no output on environment changes)";
+      description =
+        "Whether to enable silent mode (no output on environment changes)";
     };
 
     hideEnvDiff = lib.mkOption {
@@ -62,14 +56,12 @@ in
       enableBashIntegration = true;
       enableFishIntegration = true;
 
-      nix-direnv = {
-        enable = true;
-      };
+      nix-direnv = { enable = true; };
 
       config = {
         global = {
           silent = cfg.silentMode;
-          log_format = if cfg.silentMode then "" else "%s";
+          # log_format = if cfg.silentMode then "" else "%s";
           hide_env_diff = cfg.hideEnvDiff;
           strict_env = cfg.strictEnv;
         };
@@ -79,8 +71,8 @@ in
       stdlib = cfg.customStdlib;
     };
 
-    home.sessionVariables = {
-      DIRENV_LOG_FORMAT = if cfg.silentMode then "" else "%s";
-    };
+    # home.sessionVariables = {
+    #   DIRENV_LOG_FORMAT = if cfg.silentMode then "" else "%s";
+    # };
   };
 }

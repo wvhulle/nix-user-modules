@@ -79,32 +79,31 @@ def --env __zoxide_zi [...rest: string] {
 alias z = __zoxide_z
 alias zi = __zoxide_zi
 
-# Setup hooks using idiomatic nushell pattern
-$env.config = (
-  $env.config | upsert hooks {
-    # Preserve existing hooks and add new ones
-    let current_hooks = ($env.config.hooks? | default {})
+# Initialize hooks using idiomatic nushell pattern
+$env.config.hooks = $env.config.hooks? | default {}
+$env.config.hooks.env_change = $env.config.hooks.env_change? | default {}
+$env.config.hooks.env_change.PWD = $env.config.hooks.env_change.PWD? | default []
 
-    $current_hooks | upsert env_change {
-      let current_env_change = ($current_hooks.env_change? | default {})
-
-      $current_env_change | upsert PWD (
-        ($current_env_change.PWD? | default [])
-        | append {||
-          # Direnv hook
-          if (which direnv | is-empty) {
-            return
-          }
-          direnv export json | from json | default {} | load-env
-        }
-        | append {||
-          # Zoxide database update
-          zoxide add -- $env.PWD
-        }
-      )
-    } | upsert pre_prompt (
-      ($current_hooks.pre_prompt? | default [])
-      | append {|| refresh-theme; notify-long-command }
-    )
+# Direnv hook
+$env.config.hooks.env_change.PWD ++= [{||
+  if (which direnv | is-empty) { return }
+  let result = direnv export json | complete
+  if ($result.stderr | is-not-empty) {
+    print -e $result.stderr
   }
-)
+  if $result.exit_code == 0 and ($result.stdout | is-not-empty) {
+    $result.stdout | from json | default {} | load-env
+    if ($env.PATH | describe) == "string" {
+      $env.PATH = $env.PATH | split row (char esep)
+    }
+  }
+}]
+
+# Zoxide hook
+$env.config.hooks.env_change.PWD ++= [{|before, after|
+  zoxide add -- $after
+}]
+
+# Pre-prompt hooks
+$env.config.hooks.pre_prompt = $env.config.hooks.pre_prompt? | default []
+$env.config.hooks.pre_prompt ++= [{|| refresh-theme; notify-long-command }]
