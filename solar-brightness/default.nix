@@ -118,7 +118,7 @@ in
                 heliocron
                 bash
                 ddcutil
-                bc
+                brightnessctl
                 coreutils
               ]
             )
