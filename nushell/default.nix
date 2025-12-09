@@ -139,7 +139,7 @@ in
 
       oh-my-posh = lib.mkIf cfg.shellIntegrations.ohMyPosh.enable {
         enable = true;
-        enableNushellIntegration = false;
+        enableNushellIntegration = true;
         useTheme = cfg.shellIntegrations.ohMyPosh.theme;
       };
     };

@@ -104,6 +104,7 @@ let
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
+    bierner.markdown-mermaid
     haskell.haskell
     justusadam.language-haskell
     vadimcn.vscode-lldb

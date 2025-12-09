@@ -6,7 +6,7 @@
 
 let
   cfg = config.programs.helix-extended;
-  lspCfg = config.programs.lsp;
+  langCfg = config.programs.languages;
 
   getServerCommand =
     name: server: if server.command != "" then server.command else "${server.package}/bin/${name}";
@@ -14,6 +14,10 @@ let
   getFormatterCommand =
     name: formatter:
     if formatter.command != "" then formatter.command else "${formatter.package}/bin/${name}";
+
+  getLangServers = langName: lib.attrNames (langCfg.languages.${langName}.servers or { });
+
+  getLangFormatter = langName: langCfg.languages.${langName}.formatter or null;
 in
 {
   options.programs.helix-extended = {
@@ -123,71 +127,62 @@ in
       };
 
       languages = lib.mkIf cfg.enableLanguageServers {
-        language = lib.sortOn (l: l.name) (
-          [
-            # Markdown
-            {
-              name = "markdown";
-              auto-format = cfg.enableAutoFormat;
-              language-servers = [ "typos-lsp" ];
-              formatter = {
-                command = getFormatterCommand "dprint" lspCfg.formatters.dprint;
-                args = lspCfg.formatters.dprint.args ++ [ "md" ];
-              };
-              auto-pairs = {
-                "\"" = ''"'';
-                "(" = ")";
-                "<" = ">";
-                "[" = "]";
-                "{" = "}";
-              };
-            }
+        language =
+          let
+            mdFormatter = getLangFormatter "markdown";
+            nixFormatter = getLangFormatter "nix";
+            nuFormatter = getLangFormatter "nushell";
+          in
+          lib.sortOn (l: l.name) (
+            [
+              {
+                name = "markdown";
+                auto-format = cfg.enableAutoFormat;
+                language-servers = getLangServers "markdown";
+                formatter = lib.mkIf (mdFormatter != null) {
+                  command = getFormatterCommand "dprint" mdFormatter;
+                  args = mdFormatter.args ++ [ "md" ];
+                };
+                auto-pairs = {
+                  "\"" = ''"'';
+                  "(" = ")";
+                  "<" = ">";
+                  "[" = "]";
+                  "{" = "}";
+                };
+              }
 
-            # Nix
-            {
-              name = "nix";
-              auto-format = cfg.enableAutoFormat;
-              language-servers = [
-                "nil"
-                "typos-lsp"
-              ];
-              formatter.command = getFormatterCommand "nixfmt" lspCfg.formatters.nixfmt;
-            }
+              {
+                name = "nix";
+                auto-format = cfg.enableAutoFormat;
+                language-servers = getLangServers "nix";
+                formatter = lib.mkIf (nixFormatter != null) {
+                  command = getFormatterCommand "nixfmt" nixFormatter;
+                };
+              }
 
-            # Nushell
-            {
-              name = "nu";
-              auto-format = cfg.enableAutoFormat;
-              language-servers = [
-                "nu-lint"
-                "typos-lsp"
-              ];
-              formatter = {
-                command = getFormatterCommand "topiary" lspCfg.formatters.topiary;
-                args = lspCfg.formatters.topiary.args ++ [ "nu" ];
-              };
-            }
+              {
+                name = "nu";
+                auto-format = cfg.enableAutoFormat;
+                language-servers = getLangServers "nushell";
+                formatter = lib.mkIf (nuFormatter != null) {
+                  command = getFormatterCommand "topiary" nuFormatter;
+                  args = nuFormatter.args ++ [ "nu" ];
+                };
+              }
 
-            # Rust
-            {
-              name = "rust";
-              language-servers = [
-                "rust-analyzer"
-                "typos-lsp"
-              ];
-            }
+              {
+                name = "rust";
+                language-servers = getLangServers "rust";
+              }
 
-            # Typst
-            {
-              name = "typst";
-              language-servers = [
-                "tinymist"
-                "typos-lsp"
-              ];
-            }
-          ]
-          ++ cfg.additionalLanguages
-        );
+              {
+                name = "typst";
+                language-servers = getLangServers "typst";
+              }
+            ]
+            ++ cfg.additionalLanguages
+          );
 
         language-server =
           let
@@ -200,12 +195,17 @@ in
                 // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
                 // lib.optionalAttrs (server.config != { }) { inherit (server) config; }
               );
-            enabledServers = lib.filterAttrs (_: s: s.enable) lspCfg.servers;
+
+            allServers = lib.foldl' (acc: langCfg: acc // langCfg.servers) { } (
+              lib.attrValues (lib.filterAttrs (_: l: l.enable) langCfg.languages)
+            );
+
+            enabledServers = lib.filterAttrs (_: s: s.enable) allServers;
           in
           lib.mapAttrs' mkServerConfig enabledServers // cfg.additionalLanguageServers;
       };
     };
 
-    programs.lsp.enable = true;
+    programs.languages.enable = true;
   };
 }
