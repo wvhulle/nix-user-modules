@@ -8,9 +8,6 @@ let
   cfg = config.programs.helix-extended;
   langCfg = config.programs.languages;
 
-  getServerCommand =
-    name: server: if server.command != "" then server.command else "${server.package}/bin/${name}";
-
   getFormatterCommand =
     name: formatter:
     if formatter.command != "" then formatter.command else "${formatter.package}/bin/${name}";
@@ -186,12 +183,22 @@ in
 
         language-server =
           let
+            getServerCommand =
+              name: server:
+              if server.command != "" then
+                server.command
+              else if server.package != null then
+                "${server.package}/bin/${name}"
+              else
+                null;
+
             mkServerConfig =
               name: server:
+              let
+                cmd = getServerCommand name server;
+              in
               lib.nameValuePair name (
-                {
-                  command = getServerCommand name server;
-                }
+                lib.optionalAttrs (cmd != null) { command = cmd; }
                 // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
                 // lib.optionalAttrs (server.config != { }) { inherit (server) config; }
               );

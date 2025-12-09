@@ -35,7 +35,22 @@ let
   toolType = lib.types.submodule { options = toolOptions; };
 
   serverType = lib.types.submodule {
-    options = toolOptions // {
+    options = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to enable this tool";
+      };
+      package = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = null;
+        description = "Package providing the tool (null if externally managed)";
+      };
+      args = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Additional arguments to pass to the tool";
+      };
       command = lib.mkOption {
         type = lib.types.str;
         default = "";
@@ -131,7 +146,6 @@ let
     rust = {
       servers = {
         rust-analyzer = {
-          package = pkgs.rust-analyzer;
           config = {
             cargo = {
               allFeatures = true;
@@ -175,10 +189,12 @@ let
 
   enabledLanguages = lib.filterAttrs (_: l: l.enable) cfg.languages;
 
-  allServers = lib.flatten (
-    lib.mapAttrsToList (
-      _: lang: lib.attrValues (lib.filterAttrs (_: s: s.enable) lang.servers)
-    ) enabledLanguages
+  allServers = lib.filter (s: s.package != null) (
+    lib.flatten (
+      lib.mapAttrsToList (
+        _: lang: lib.attrValues (lib.filterAttrs (_: s: s.enable) lang.servers)
+      ) enabledLanguages
+    )
   );
 
   allFormatters = lib.filter (f: f != null && f.enable) (
