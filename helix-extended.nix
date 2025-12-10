@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 
 let
   cfg = config.programs.helix-extended;
@@ -107,13 +103,11 @@ in
           };
 
           inline-diagnostics = {
-            cursor-line = "warning";
-            other-lines = "disable";
+            cursor-line = "hint";
+            other-lines = "error";
           };
 
-          lsp = {
-            display-inlay-hints = false;
-          };
+          # lsp = { display-inlay-hints = false; };
 
           soft-wrap = {
             enable = true;
@@ -199,8 +193,12 @@ in
               in
               lib.nameValuePair name (
                 lib.optionalAttrs (cmd != null) { command = cmd; }
-                // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
-                // lib.optionalAttrs (server.config != { }) { inherit (server) config; }
+                // lib.optionalAttrs (server.args != [ ]) {
+                  inherit (server) args;
+                }
+                // lib.optionalAttrs (server.config != { }) {
+                  inherit (server) config;
+                }
               );
 
             allServers = lib.foldl' (acc: langCfg: acc // langCfg.servers) { } (
