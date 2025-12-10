@@ -147,6 +147,11 @@ let
       servers = {
         rust-analyzer = {
           config = {
+            cachePriming.enable = true;
+            imports.preferNoStd = true;
+            lens.references.method.enable = true;
+            completion.postfix.enable = false;
+            diagnostics.experimental.enable = true;
             cargo = {
               allFeatures = true;
               allTargets = false;

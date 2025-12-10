@@ -35,7 +35,6 @@ in
       };
       description = "Environment variables to set in nushell env.nu";
       example = {
-        EDITOR = "hx";
         PAGER = "less";
       };
     };

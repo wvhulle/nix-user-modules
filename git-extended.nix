@@ -82,9 +82,7 @@ in
         git.enable = true;
         enable = true;
         options = {
-          background = "dark";
           color = "auto";
-          display = "side-by-side-show-both";
         };
 
       };

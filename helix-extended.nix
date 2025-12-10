@@ -15,165 +15,80 @@ in
 {
   options.programs.helix-extended = {
     enable = lib.mkEnableOption "extended helix configuration";
-
-    setAsDefaultEditor = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Whether to set helix as the default editor (EDITOR environment variable)";
-    };
-
-    theme = lib.mkOption {
-      type = lib.types.str;
-      default = "ao";
-      description = "Helix theme to use";
-      example = "onedark";
-    };
-
-    enableAutoFormat = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable auto-formatting";
-    };
-
-    enableAutoSave = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable auto-save functionality";
-    };
-
-    autoSaveTimeout = lib.mkOption {
-      type = lib.types.int;
-      default = 1000;
-      description = "Auto-save timeout in milliseconds";
-    };
-
-    enableLanguageServers = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable language server configurations";
-    };
-
-    additionalLanguages = lib.mkOption {
-      type = lib.types.listOf lib.types.attrs;
-      default = [ ];
-      description = "Additional language configurations";
-    };
-
-    additionalLanguageServers = lib.mkOption {
-      type = lib.types.attrsOf lib.types.attrs;
-      default = { };
-      description = "Additional language server configurations";
-    };
-
-    customKeybinds = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = "Custom key bindings";
-    };
   };
 
   config = lib.mkIf cfg.enable {
     programs.helix = {
       enable = true;
-      defaultEditor = cfg.setAsDefaultEditor;
+      defaultEditor = true;
 
       settings = {
-        inherit (cfg) theme;
+        theme = "ao";
 
         editor = {
-          gutters = [
-            "diff"
-            "diagnostics"
-            "line-numbers"
-            "spacer"
-          ];
-          auto-format = cfg.enableAutoFormat;
+          # gutters = [
+          #   "diff"
+          #   "diagnostics"
+          #   "line-numbers"
+          #   "spacer"
+          # ];
+          auto-format = true;
 
-          auto-save = lib.mkIf cfg.enableAutoSave {
+          auto-save = {
             enable = true;
             focus-lost = true;
             after-delay = {
               enable = true;
-              timeout = cfg.autoSaveTimeout;
+              timeout = 1000;
             };
           };
-
+          bufferline = "multiple";
           indent-guides = {
             render = true;
           };
-
+          end-of-line-diagnostics = "hint";
           inline-diagnostics = {
-            cursor-line = "hint";
+            cursor-line = "warning";
             other-lines = "error";
           };
-
-          # lsp = { display-inlay-hints = false; };
 
           soft-wrap = {
             enable = true;
           };
         };
-
-        keys = cfg.customKeybinds;
       };
 
-      languages = lib.mkIf cfg.enableLanguageServers {
+      languages = {
         language =
           let
-            mdFormatter = getLangFormatter "markdown";
-            nixFormatter = getLangFormatter "nix";
-            nuFormatter = getLangFormatter "nushell";
+            # Map from languages.nix names to helix language identifiers
+            langNameMap = {
+              nushell = "nu";
+            };
+
+            mkLanguageConfig =
+              langName: _:
+              let
+                helixLangName = langNameMap.${langName} or langName;
+                formatter = getLangFormatter langName;
+                formatterName =
+                  if formatter != null then formatter.package.pname or formatter.package.name else null;
+              in
+              {
+                name = helixLangName;
+                auto-format = true;
+                language-servers = getLangServers langName;
+              }
+              // lib.optionalAttrs (formatter != null) {
+                formatter = {
+                  command = getFormatterCommand formatterName formatter;
+                  args = formatter.args ++ lib.optional (langName == "markdown") helixLangName;
+                };
+              };
+
+            enabledLanguages = lib.filterAttrs (_: l: l.enable) langCfg.languages;
           in
-          lib.sortOn (l: l.name) (
-            [
-              {
-                name = "markdown";
-                auto-format = cfg.enableAutoFormat;
-                language-servers = getLangServers "markdown";
-                formatter = lib.mkIf (mdFormatter != null) {
-                  command = getFormatterCommand "dprint" mdFormatter;
-                  args = mdFormatter.args ++ [ "md" ];
-                };
-                auto-pairs = {
-                  "\"" = ''"'';
-                  "(" = ")";
-                  "<" = ">";
-                  "[" = "]";
-                  "{" = "}";
-                };
-              }
-
-              {
-                name = "nix";
-                auto-format = cfg.enableAutoFormat;
-                language-servers = getLangServers "nix";
-                formatter = lib.mkIf (nixFormatter != null) {
-                  command = getFormatterCommand "nixfmt" nixFormatter;
-                };
-              }
-
-              {
-                name = "nu";
-                auto-format = cfg.enableAutoFormat;
-                language-servers = getLangServers "nushell";
-                formatter = lib.mkIf (nuFormatter != null) {
-                  command = getFormatterCommand "topiary" nuFormatter;
-                  args = nuFormatter.args ++ [ "nu" ];
-                };
-              }
-
-              {
-                name = "rust";
-                language-servers = getLangServers "rust";
-              }
-
-              {
-                name = "typst";
-                language-servers = getLangServers "typst";
-              }
-            ]
-            ++ cfg.additionalLanguages
-          );
+          lib.sortOn (l: l.name) (lib.mapAttrsToList mkLanguageConfig enabledLanguages);
 
         language-server =
           let
@@ -207,7 +122,7 @@ in
 
             enabledServers = lib.filterAttrs (_: s: s.enable) allServers;
           in
-          lib.mapAttrs' mkServerConfig enabledServers // cfg.additionalLanguageServers;
+          lib.mapAttrs' mkServerConfig enabledServers;
       };
     };
 
