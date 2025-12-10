@@ -20,7 +20,7 @@ in
 
     silentMode = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Whether to enable silent mode (no output on environment changes)";
     };
 

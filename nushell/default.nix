@@ -135,6 +135,7 @@ in
       zoxide = lib.mkIf cfg.shellIntegrations.zoxide.enable {
         enable = true;
         enableNushellIntegration = false;
+        enableBashIntegration = true;
       };
 
       oh-my-posh = lib.mkIf cfg.shellIntegrations.ohMyPosh.enable {
