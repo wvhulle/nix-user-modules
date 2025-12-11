@@ -167,8 +167,10 @@ let
       formatter.package = pkgs.typstyle;
       servers = {
         tinymist = {
+          command = "tinymist";
           package = pkgs.tinymist;
           config.preview.background = {
+            exportPdf = "onType";
             enabled = true;
             args = [
               "--data-plane-host=127.0.0.1:23635"

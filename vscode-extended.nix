@@ -104,6 +104,7 @@ let
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
+    streetsidesoftware.code-spell-checker
     bierner.markdown-mermaid
     haskell.haskell
     justusadam.language-haskell
