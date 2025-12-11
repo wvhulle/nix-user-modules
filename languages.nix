@@ -175,6 +175,7 @@ let
             args = [
               "--data-plane-host=127.0.0.1:23635"
               "--open"
+              "--invert-colors=auto"
             ];
           };
         };

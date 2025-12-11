@@ -54,11 +54,8 @@ in
           context7Pkg = pkgs.callPackage ./packages/context7.nix { };
           githubPkg = pkgs.callPackage ./packages/github-mcp-server.nix { };
           playwrightPkg = pkgs.callPackage ./packages/playwright.nix { };
-          browserExecutable =
-            if pkgs.stdenv.hostPlatform.isDarwin then
-              lib.getExe pkgs.google-chrome
-            else
-              lib.getExe pkgs.chromium;
+          browserExecutable = lib.getExe pkgs.google-chrome;
+
         in
         {
           context7 = {
@@ -84,6 +81,8 @@ in
             args = [
               "--executable-path"
               "${browserExecutable}"
+              "--browser"
+              "google-chrome"
             ];
             env = { };
           };
