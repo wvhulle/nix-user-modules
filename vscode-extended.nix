@@ -64,22 +64,25 @@ let
     go "";
 
   defaultMarketplaceExtensions = with pkgs.vscode-marketplace; [
-    alefragnani.project-manager
-    anthropic.claude-code
     ast-grep.ast-grep-vscode
-    codezombiech.gitignore
+
     constneo.vscode-nushell-format
-    foxundermoon.shell-format
-    jnoortheen.nix-ide
-    leanprover.lean4
+
     ms-vscode.vscode-websearchforcopilot
-    quicktype.quicktype
     willemvanhulle.nu-lint
     ziyasal.vscode-open-in-github
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
 
+    quicktype.quicktype
+
+    alefragnani.project-manager
+    codezombiech.gitignore
+    anthropic.claude-code
+    jnoortheen.nix-ide
+
+    foxundermoon.shell-format
     bierner.markdown-mermaid
     charliermarsh.ruff
     christian-kohler.path-intellisense
@@ -268,7 +271,14 @@ let
       };
     };
 
+    claudeCode = {
+      claudeProcessWrapper = "${claudeProcessWrapper}";
+      allowDangerouslySkipPermissions = true;
+      preferredLocation = "panel";
+    };
+
     chat = {
+      useClaudeSkills = true;
       agent = {
         enabled = true;
         maxRequests = 100000;
@@ -348,6 +358,10 @@ let
   setupVscodeMcpScript = pkgs.writers.writeNuBin "setup-vscode-mcp" (
     builtins.readFile ./setup-vscode-mcp.nu
   );
+
+  claudeProcessWrapper = pkgs.writeShellScript "claude-wrapper" ''
+    exec ${pkgs.claude-code}/bin/claude "$@"
+  '';
 in
 {
   options = {
