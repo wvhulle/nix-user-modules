@@ -39,8 +39,7 @@
       enable = true;
       extensions = [ "nix" ];
       instructions = [
-        "When running as root, call `nh os switch /etc/nixos` and skip the `--dry` flag."
-        "When running as a normal non-root user, use `nh os switch --dry /etc/nixos` to validate the nix configuration of the current host without building it."
+        "Use --no-pager when running systemd commands."
         "Never run any `find` command on the `/nix/store` folder based on filename, because absolute store paths slow to traverse and unpredictable."
         "Use `command-not-found BINARY` to find the nix package to install."
         "Don't create new script/ directories, just embed script files directly in the parent directory."

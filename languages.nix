@@ -8,12 +8,7 @@
 let
   cfg = config.programs.languages;
 
-  topiary-nu-module = pkgs.fetchFromGitHub {
-    owner = "blindfs";
-    repo = "topiary-nushell";
-    rev = "fd78be393af5a64e56b493f52e4a9ad1482c07f4";
-    sha256 = "sha256-5gmLFnbHbQHnE+s1uAhFkUrhEvUWB/hg3/8HSYC9L14=";
-  };
+  topiary-nu-module = pkgs.topiary-nushell-queries;
 
   toolOptions = {
     enable = lib.mkOption {

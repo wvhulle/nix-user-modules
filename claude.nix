@@ -47,7 +47,6 @@ in
     home = {
       packages = with pkgs; [
         nodejs
-        jq
       ];
 
       file = {
@@ -89,17 +88,7 @@ in
                 };
               };
           in
-          builtins.readFile (
-            pkgs.runCommand "claude-settings.json"
-              {
-                buildInputs = [ pkgs.jq ];
-                passAsFile = [ "jsonContent" ];
-                jsonContent = builtins.toJSON finalConfig;
-              }
-              ''
-                jq '.' < "$jsonContentPath" > $out
-              ''
-          );
+          builtins.toJSON finalConfig;
       };
 
       # Setup MCP servers configuration for Claude

@@ -102,7 +102,7 @@ let
     monaspace = {
       terminal = {
         name = "Monaspace Neon";
-        package = pkgs.monaspace;
+        package = pkgs.nerd-fonts.monaspace;
       };
       editor = {
         name = "Monaspace Neon";
