@@ -75,6 +75,7 @@ let
     foxundermoon.shell-format
     ast-grep.ast-grep-vscode
     leanprover.lean4
+    constneo.vscode-nushell-format
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
@@ -83,6 +84,7 @@ let
     haskell.haskell
     justusadam.language-haskell
     vadimcn.vscode-lldb
+
     mkhl.direnv
     christian-kohler.path-intellisense
     ecmel.vscode-html-css
@@ -136,7 +138,6 @@ let
       formatOnSave = true;
       smoothScrolling = true;
       wordWrap = "on";
-      defaultFormatter = null;
     };
 
     window = {
@@ -301,7 +302,7 @@ let
     "[nix]".editor.defaultFormatter = "jnoortheen.nix-ide";
     "[nushell]" = {
       editor = {
-        defaultFormatter = "TheNuProjectContributors.vscode-nushell-lang";
+        defaultFormatter = "constneo.vscode-nushell-format";
         formatOnSave = true;
       };
     };
@@ -343,14 +344,6 @@ let
 
       ${instructionsText}
     '';
-
-  fixVscodeExtensionsScript = pkgs.writers.writeNuBin "fix-vscode-extensions" (
-    builtins.readFile ./fix-vscode-extensions.nu
-  );
-
-  updateVscodeSettingsScript = pkgs.writers.writeNuBin "update-vscode-settings" (
-    builtins.readFile ./update-vscode-settings.nu
-  );
 
   setupVscodeMcpScript = pkgs.writers.writeNuBin "setup-vscode-mcp" (
     builtins.readFile ./setup-vscode-mcp.nu
@@ -512,29 +505,6 @@ in
 
     home = {
       activation = {
-        fixVscodeExtensions = lib.mkIf cfg.mutableExtensionsDir {
-          after = [
-            "writeBoundary"
-            "reloadSystemd"
-          ];
-          before = [ ];
-          data = ''
-            ${fixVscodeExtensionsScript}/bin/fix-vscode-extensions
-          '';
-        };
-
-        vscodeSettings = lib.mkIf cfg.mutableUserSettings (
-          let
-            mergedSettings = flattenVscodeSettings (
-              lib.recursiveUpdate defaultSettings cfg.additionalUserSettings
-            );
-            jsonFormat = pkgs.formats.json { };
-            settingsJson = jsonFormat.generate "vscode-settings.json" mergedSettings;
-          in
-          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-            ${updateVscodeSettingsScript}/bin/update-vscode-settings "${settingsJson}"
-          ''
-        );
 
         # Setup MCP servers configuration for VSCode
         setupVscodeMcpServers =
