@@ -64,66 +64,66 @@ let
     go "";
 
   defaultMarketplaceExtensions = with pkgs.vscode-marketplace; [
-    anthropic.claude-code
-    ziyasal.vscode-open-in-github
-    jnoortheen.nix-ide
-    ms-vscode.vscode-websearchforcopilot
-    codezombiech.gitignore
-    willemvanhulle.nu-lint
     alefragnani.project-manager
-    quicktype.quicktype
-    foxundermoon.shell-format
+    anthropic.claude-code
     ast-grep.ast-grep-vscode
-    leanprover.lean4
+    codezombiech.gitignore
     constneo.vscode-nushell-format
+    foxundermoon.shell-format
+    jnoortheen.nix-ide
+    leanprover.lean4
+    ms-vscode.vscode-websearchforcopilot
+    quicktype.quicktype
+    willemvanhulle.nu-lint
+    ziyasal.vscode-open-in-github
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
-    streetsidesoftware.code-spell-checker
-    bierner.markdown-mermaid
-    haskell.haskell
-    justusadam.language-haskell
-    vadimcn.vscode-lldb
 
-    mkhl.direnv
+    bierner.markdown-mermaid
+    charliermarsh.ruff
     christian-kohler.path-intellisense
+    continue.continue
+    davidanson.vscode-markdownlint
+    dbaeumer.vscode-eslint
+    denoland.vscode-deno
     ecmel.vscode-html-css
+    esbenp.prettier-vscode
     fabiospampinato.vscode-open-in-github
     file-icons.file-icons
-    vscode-icons-team.vscode-icons
-    pkief.material-icon-theme
     formulahendry.auto-rename-tag
     github.copilot
     github.copilot-chat
     github.github-vscode-theme
-    haskell.haskell
-    ms-python.python
-    ms-python.vscode-pylance
-    ms-vscode.cpptools
-    ms-vscode.cmake-tools
-    ms-vscode-remote.remote-ssh
-    ms-vscode-remote.remote-ssh-edit
-    ms-vsliveshare.vsliveshare
-    tamasfe.even-better-toml
-    thenuprojectcontributors.vscode-nushell-lang
-    tomoki1207.pdf
-    davidanson.vscode-markdownlint
-    esbenp.prettier-vscode
-    dbaeumer.vscode-eslint
-    tekumara.typos-vscode
-    mechatroner.rainbow-csv
-    gruntfuggly.todo-tree
-    timonwong.shellcheck
-    myriad-dreamin.tinymist
-    charliermarsh.ruff
-    continue.continue
-    denoland.vscode-deno
     github.vscode-github-actions
     github.vscode-pull-request-github
+    gruntfuggly.todo-tree
+    haskell.haskell
+    haskell.haskell
+    justusadam.language-haskell
+    mechatroner.rainbow-csv
     mhutchie.git-graph
+    mkhl.direnv
     ms-azuretools.vscode-docker
+    ms-python.python
+    ms-python.vscode-pylance
+    ms-vscode-remote.remote-ssh
+    ms-vscode-remote.remote-ssh-edit
+    ms-vscode.cmake-tools
+    ms-vscode.cpptools
+    ms-vsliveshare.vsliveshare
+    myriad-dreamin.tinymist
+    pkief.material-icon-theme
     rust-lang.rust-analyzer
+    streetsidesoftware.code-spell-checker
     svelte.svelte-vscode
+    tamasfe.even-better-toml
+    tekumara.typos-vscode
+    thenuprojectcontributors.vscode-nushell-lang
+    timonwong.shellcheck
+    tomoki1207.pdf
+    vadimcn.vscode-lldb
+    vscode-icons-team.vscode-icons
     wholroyd.jinja
     wix.vscode-import-cost
   ];
@@ -358,30 +358,6 @@ in
         description = "Whether to enable VSCode configuration module";
       };
 
-      mutableUserSettings = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Whether VSCode user settings should be writable at runtime.
-          When true, creates a writable settings.json file instead of a read-only symlink.
-          When false, uses Home Manager's immutable settings management.
-        '';
-      };
-
-      mutableExtensionsDir = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Whether extensions can be installed or updated manually
-          or by Visual Studio Code. 
-
-          Note: Due to Home Manager's current implementation, this setting
-          has limitations when used with profiles. Extensions defined in Nix
-          will still be managed immutably, but VSCode can install additional
-          extensions and modify some settings at runtime.
-        '';
-      };
-
       includeAgentInstructions = lib.mkOption {
         type = lib.types.bool;
         default = true;
@@ -529,13 +505,12 @@ in
     programs.vscode = {
       enable = true;
       package = pkgs.vscode;
-      inherit (cfg) mutableExtensionsDir;
-
+      mutableExtensionsDir = false;
       profiles.default = {
         extensions = defaultNixpkgsExtensions ++ defaultMarketplaceExtensions ++ cfg.additionalExtensions;
 
-        userSettings = lib.mkIf (!cfg.mutableUserSettings) (
-          flattenVscodeSettings (lib.recursiveUpdate defaultSettings cfg.additionalUserSettings)
+        userSettings = flattenVscodeSettings (
+          lib.recursiveUpdate defaultSettings cfg.additionalUserSettings
         );
       };
     };
