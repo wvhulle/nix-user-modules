@@ -8,40 +8,6 @@
 let
   cfg = config.programs.firefox-extended;
 
-  generateServerBookmarks =
-    {
-      webServices,
-      machines,
-      currentHostname,
-    }:
-    {
-      name = "Server";
-      bookmarks =
-        (lib.flatten (
-          lib.mapAttrsToList (
-            hostname: hostConfig:
-            let
-              hostServiceNames = hostConfig.webServices or [ ];
-              hostServices = map (serviceName: webServices.${serviceName} // { name = serviceName; }) (
-                lib.filter (
-                  serviceName: webServices ? ${serviceName} && (webServices.${serviceName}.htmlAccess or false)
-                ) hostServiceNames
-              );
-            in
-            lib.map (service: {
-              name = "${service.name} (${hostname})";
-              url = "http://${service.subdomain}.${hostname}.local";
-            }) hostServices
-          ) machines
-        ))
-        ++ [
-          {
-            name = "Service Directory (${currentHostname})";
-            url = "http://${currentHostname}.local/";
-          }
-        ];
-    };
-
   developerSearchEngines = [
     {
       Name = "NixOS Packages";
@@ -78,11 +44,6 @@ let
       name = "ublock-origin";
       id = "uBlock0@raymondhill.net";
     }
-  ];
-
-  defaultUBlockOriginFilters = [
-    "bandcamp.com##.factoid.corp-page-section.global-section"
-    "bandcamp.com##li.buyItem:contains(/Vinyl|CD|Cassette/i)"
   ];
 
   defaultPrivacyPrefs = {
@@ -130,24 +91,6 @@ in
       description = "Firefox package to use";
     };
 
-    enablePrivacyPresets = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable privacy and security presets";
-    };
-
-    enableUxPresets = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable user experience presets";
-    };
-
-    preserveUserData = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to preserve user data on shutdown";
-    };
-
     additionalPreferences = lib.mkOption {
       type = lib.types.attrsOf lib.types.anything;
       default = { };
@@ -170,42 +113,27 @@ in
       type = lib.types.anything;
       default = null;
       description = "Firefox bookmarks configuration (raw bookmark structure)";
-    };
-
-    enableServerBookmarks = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Whether to automatically generate server bookmarks from network configuration";
-    };
-
-    webServices = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = "Web services configuration (system-level config passed through)";
-    };
-
-    machines = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = "Machine configurations (system-level config passed through)";
-    };
-
-    currentHostname = lib.mkOption {
-      type = lib.types.str;
-      default = "localhost";
-      description = "Current hostname for service directory bookmark";
-    };
-
-    enableDeveloperSearchEngines = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to add useful search engines for developers (NixOS packages, Home Manager options, etc.)";
-    };
-
-    enableDeveloperExtensions = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Whether to enable developer-oriented extensions";
+      example = lib.literalExpression ''
+        [
+          {
+            name = "Wikipedia";
+            url = "https://wikipedia.org";
+          }
+          {
+            name = "Development";
+            bookmarks = [
+              {
+                name = "GitHub";
+                url = "https://github.com";
+              }
+              {
+                name = "NixOS Search";
+                url = "https://search.nixos.org";
+              }
+            ];
+          }
+        ]
+      '';
     };
 
     additionalExtensions = lib.mkOption {
@@ -235,38 +163,6 @@ in
       ];
     };
 
-    uBlockOrigin = {
-      enable = lib.mkEnableOption "uBlock Origin configuration";
-
-      userFilters = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = ''
-          Custom uBlock Origin user filters.
-
-          IMPORTANT: Firefox must be completely closed BEFORE running home-manager/nixos-rebuild switch.
-          If Firefox is running during the rebuild, it may overwrite the managed storage file on shutdown,
-          causing the new filters to not take effect even after restart.
-        '';
-        example = [
-          "bandcamp.com##.factoid.corp-page-section.global-section"
-          "youtube.com##.ytp-pause-overlay"
-        ];
-      };
-    };
-
-    enableDefaultExtensions = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable default extensions (youtube-nonstop, ublock-origin)";
-    };
-
-    enableDefaultUBlockFilters = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable default uBlock Origin filters (bandcamp)";
-    };
-
     downloadDirectory = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -287,24 +183,18 @@ in
 
     programs.gh.settings.browser = "firefox";
 
-    home.file =
-      lib.mkIf
-        (cfg.enableDefaultUBlockFilters || cfg.uBlockOrigin.enable || cfg.uBlockOrigin.userFilters != [ ])
-        {
-          ".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
-            name = "uBlock0@raymondhill.net";
-            description = "ignored";
-            type = "storage";
-            data = {
-              adminSettings = builtins.toJSON {
-                userFilters = lib.concatStringsSep "\n" (
-                  (lib.optionals cfg.enableDefaultUBlockFilters defaultUBlockOriginFilters)
-                  ++ cfg.uBlockOrigin.userFilters
-                );
-              };
-            };
+    home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
+      name = "uBlock0@raymondhill.net";
+      description = "ignored";
+      type = "storage";
+      data = {
+        adminSettings = builtins.toJSON {
+          userSettings = {
+            cloudStorageEnabled = true;
           };
         };
+      };
+    };
 
     programs.firefox = {
       enable = true;
@@ -312,7 +202,7 @@ in
 
       policies = lib.mkMerge [
         cfg.additionalPolicies
-        (lib.optionalAttrs cfg.enableDeveloperSearchEngines {
+        {
           SearchEngines = {
             Add = developerSearchEngines;
             Remove = [
@@ -320,15 +210,9 @@ in
               "eBay"
             ];
           };
-        })
-        (lib.optionalAttrs (cfg.enableDefaultExtensions || cfg.additionalExtensions != [ ]) {
           ExtensionSettings = builtins.listToAttrs (
-            map (ext: mkExtension ext.name ext.id) (
-              (lib.optionals cfg.enableDefaultExtensions defaultExtensions) ++ cfg.additionalExtensions
-            )
+            map (ext: mkExtension ext.name ext.id) (defaultExtensions ++ cfg.additionalExtensions)
           );
-        })
-        {
           DisableAppUpdate = true;
         }
       ];
@@ -338,17 +222,11 @@ in
           isDefault = true;
 
           settings = lib.mkMerge [
-            (lib.optionalAttrs cfg.enablePrivacyPresets defaultPrivacyPrefs)
-            (lib.optionalAttrs cfg.enableUxPresets (lib.mapAttrs (_: lib.mkDefault) defaultUxPrefs))
-            (lib.optionalAttrs (cfg.downloadDirectory != null) {
-              "browser.download.dir" = cfg.downloadDirectory;
-              "browser.download.useDownloadDir" = true;
-            })
-            (lib.optionalAttrs (cfg.neverTranslateLanguages != [ ]) {
-              "browser.translations.neverTranslateLanguages" =
-                lib.concatStringsSep "," cfg.neverTranslateLanguages;
-            })
-            (lib.optionalAttrs cfg.preserveUserData {
+            defaultPrivacyPrefs
+            (lib.mapAttrs (_: lib.mkDefault) defaultUxPrefs)
+            {
+              "services.sync.engine.addons" = true;
+              "services.sync.engine.addons.ignoreDesktopClients" = false;
               "privacy.clearOnShutdown.cache" = false;
               "privacy.clearOnShutdown.cookies" = false;
               "privacy.clearOnShutdown.downloads" = false;
@@ -361,39 +239,21 @@ in
               "privacy.cpd.formdata" = false;
               "privacy.cpd.history" = false;
               "privacy.cpd.sessions" = false;
+            }
+            (lib.optionalAttrs (cfg.downloadDirectory != null) {
+              "browser.download.dir" = cfg.downloadDirectory;
+              "browser.download.useDownloadDir" = true;
+            })
+            (lib.optionalAttrs (cfg.neverTranslateLanguages != [ ]) {
+              "browser.translations.neverTranslateLanguages" =
+                lib.concatStringsSep "," cfg.neverTranslateLanguages;
             })
             cfg.additionalPreferences
           ];
         }
-        (lib.optionalAttrs (cfg.bookmarks != null) (
-          let
-            baseBookmarks = import cfg.bookmarks;
-
-            finalBookmarks =
-              if cfg.enableServerBookmarks then
-                {
-                  inherit (baseBookmarks) force;
-                  settings = lib.map (
-                    toolbar:
-                    toolbar
-                    // {
-                      bookmarks = toolbar.bookmarks ++ [
-                        (generateServerBookmarks {
-                          inherit (cfg) webServices;
-                          inherit (cfg) machines;
-                          inherit (cfg) currentHostname;
-                        })
-                      ];
-                    }
-                  ) baseBookmarks.settings;
-                }
-              else
-                baseBookmarks;
-          in
-          {
-            bookmarks = finalBookmarks;
-          }
-        ))
+        (lib.optionalAttrs (cfg.bookmarks != null) {
+          bookmarks = import cfg.bookmarks;
+        })
       ];
     };
   };
