@@ -21,86 +21,60 @@ let
     else
       "**/*.{${lib.concatStringsSep "," extensions}}";
 
-  mkMarketplaceExt =
-    {
-      name,
-      publisher,
-      version,
-      sha256,
-    }:
-    pkgs.vscode-utils.extensionFromVscodeMarketplace {
-      inherit
-        name
-        publisher
-        version
-        sha256
-        ;
-    };
+  # Flatten nested attrsets to VSCode dot-notation settings
+  # e.g., { editor.fontSize = 14; } -> { "editor.fontSize" = 14; }
+  # Language overrides like "[nix]" preserve their bracket key but flatten inner contents
+  # Map-like settings (autoApprove, enable) preserve their object structure
+  flattenVscodeSettings =
+    let
+      isLeaf = v: !builtins.isAttrs v || builtins.isList v || lib.isDerivation v;
 
-  mkMarketplaceExts = extensions: map mkMarketplaceExt extensions;
-  mkFormatter = formatter: { "editor.defaultFormatter" = formatter; };
+      isLanguageOverride = name: lib.hasPrefix "[" name && lib.hasSuffix "]" name;
 
-  defaultMarketplaceExtensions = mkMarketplaceExts [
-    {
-      name = "claude-code";
-      publisher = "anthropic";
-      version = "2.0.61";
-      sha256 = "sha256-dZu2CIjRyvAhTRwOuQV2s0SoEUQko+dQfnQg6ECwLv4=";
-    }
-    {
-      name = "vscode-open-in-github";
-      publisher = "ziyasal";
-      version = "1.3.6";
-      sha256 = "uJGCCvg6fj2He1HtKXC2XQLXYp0vTl4hQgVU9o5Uz5Q=";
-    }
-    {
-      name = "nix-ide";
-      publisher = "jnoortheen";
-      version = "0.5.0";
-      sha256 = "sha256-jVuGQzMspbMojYq+af5fmuiaS3l3moG8L8Kyf40vots=";
-    }
-    {
-      name = "vscode-websearchforcopilot";
-      publisher = "ms-vscode";
-      version = "0.1.2025120401";
-      sha256 = "sha256-Hj3822qatDMhpQzoLyk3RPLA8AJ5pt0XzUcLNZHrKmc=";
-    }
-    {
-      name = "gitignore";
-      publisher = "codezombiech";
-      version = "0.10.0";
-      sha256 = "0mmnylc7fbf6239m9fvplk8msns8di0v4bgb7wf0ly21p0g9acjr";
-    }
-    {
-      name = "nu-lint";
-      publisher = "WillemVanhulle";
-      version = "0.0.13";
-      sha256 = "sha256-76KK85Jd34U9VG+0RKImoEblcr7z1vqje2LdhbdSs/g=";
-    }
-    {
-      name = "project-manager";
-      publisher = "alefragnani";
-      version = "12.8.0";
-      sha256 = "1gp2dd4xm5a4dmaikcng79mfcb8a24mddsdwpgg4bqshcz4q7n5h";
-    }
-    {
-      name = "quicktype";
-      publisher = "quicktype";
-      version = "23.0.170";
-      sha256 = "1rwly0vm59d96k7isiplnmwsi77bzv3b0r98mwm7hp6gcpwp9bll";
-    }
-    {
-      name = "shell-format";
-      publisher = "foxundermoon";
-      version = "7.2.8";
-      sha256 = "1fkpj78xp40jaa2xh4yw87xl7ww73fg27zbxdq81j2wg793ycyv7";
-    }
-    {
-      name = "ast-grep-vscode";
-      publisher = "ast-grep";
-      version = "0.1.18";
-      sha256 = "sha256-zZ1B5Q5cdfJxbz7uRRyWP8eUZW24Gsezqi+Lx03eioo=";
-    }
+      # Settings that expect an object/map value (not to be flattened further)
+      # These are the final keys whose values should remain as objects
+      isMapSetting =
+        name:
+        builtins.elem name [
+          "autoApprove"
+          "enable"
+          "linux"
+          "osx"
+          "windows"
+        ];
+
+      go =
+        prefix: attrs:
+        lib.foldlAttrs (
+          acc: name: value:
+          let
+            fullKey = if prefix == "" then name else "${prefix}.${name}";
+          in
+          if isLanguageOverride name then
+            acc // { ${name} = if builtins.isAttrs value then go "" value else value; }
+          else if isMapSetting name then
+            # Preserve map-like settings as objects
+            acc // { ${fullKey} = value; }
+          else if isLeaf value then
+            acc // { ${fullKey} = value; }
+          else
+            acc // (go fullKey value)
+        ) { } attrs;
+    in
+    go "";
+
+  defaultMarketplaceExtensions = with pkgs.vscode-marketplace; [
+    anthropic.claude-code
+    ziyasal.vscode-open-in-github
+    jnoortheen.nix-ide
+    ms-vscode.vscode-websearchforcopilot
+    codezombiech.gitignore
+    willemvanhulle.nu-lint
+    alefragnani.project-manager
+    quicktype.quicktype
+    foxundermoon.shell-format
+    ast-grep.ast-grep-vscode
+    leanprover.lean4
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
@@ -152,167 +126,190 @@ let
     wix.vscode-import-cost
   ];
 
-  languageFormatters = {
-    "[css]" = mkFormatter "vscode.css-language-features";
-    "[html]" = mkFormatter "vscode.html-language-features";
-    "[javascript]" = mkFormatter "vscode.typescript-language-features";
-    "[json]" = mkFormatter "vscode.json-language-features";
-    "[jsonc]" = mkFormatter "vscode.json-language-features";
-    "[markdown]" = mkFormatter "DavidAnson.vscode-markdownlint";
-    "[nix]" = mkFormatter "jnoortheen.nix-ide";
-    "[nushell]" = mkFormatter "constneo.vscode-nushell-format" // {
-      "editor.formatOnSave" = true;
+  defaultSettings = {
+    editor = {
+      cursorBlinking = "smooth";
+      cursorSmoothCaretAnimation = "on";
+      fontFamily = fontsCfg.editorFontFamily;
+      fontSize = fontsCfg.sizes.editor;
+      fontLigatures = true;
+      formatOnSave = true;
+      smoothScrolling = true;
+      wordWrap = "on";
+      defaultFormatter = null;
     };
-    "[rust]" = mkFormatter "rust-lang.rust-analyzer";
-    "[scss]" = mkFormatter "vscode.css-language-features";
-    "[python]" = mkFormatter "charliermarsh.ruff";
-    "[c]" = {
-      "editor.formatOnSave" = false;
+
+    window = {
+      autoDetectColorScheme = true;
+      titleBarStyle = "native";
+      commandCenter = false;
+      menuBarVisibility = "toggle";
     };
-    "[cpp]" = {
-      "editor.formatOnSave" = false;
-    };
-  };
 
-  editorSettings = {
-    "editor.cursorBlinking" = "smooth";
-    "editor.cursorSmoothCaretAnimation" = "on";
-    "editor.fontFamily" = fontsCfg.editorFontFamily;
-    "editor.fontSize" = fontsCfg.sizes.editor;
-    "editor.fontLigatures" = true;
-    "editor.formatOnSave" = true;
-    "editor.smoothScrolling" = true;
-    "editor.wordWrap" = "on";
-  };
-
-  windowSettings = {
-    "window.autoDetectColorScheme" = true;
-    "window.titleBarStyle" = "native";
-    "window.commandCenter" = false;
-    "window.menuBarVisibility" = "toggle";
-    "workbench.list.smoothScrolling" = true;
-    "workbench.preferredDarkColorTheme" = "GitHub Dark Default";
-    "workbench.preferredLightColorTheme" = "GitHub Light Default";
-    "workbench.editor.enablePreview" = false;
-    "workbench.editor.highlightModifiedTabs" = true;
-    "workbench.iconTheme" = "vscode-icons";
-    "workbench.layoutControl.enabled" = false;
-    "workbench.navigationControl.enabled" = false;
-  };
-
-  terminalSettings = {
-    "terminal.integrated.fontFamily" = fontsCfg.terminalFontFamily;
-    "terminal.integrated.fontSize" = fontsCfg.sizes.terminal;
-    "terminal.integrated.smoothScrolling" = true;
-    "terminal.integrated.defaultProfile.linux" = "bash";
-    "terminal.integrated.profiles.linux" = {
-      "fish" = {
-        "path" = "${pkgs.fish}/bin/fish";
-        "icon" = "terminal-bash";
+    workbench = {
+      list.smoothScrolling = true;
+      preferredDarkColorTheme = "GitHub Dark Default";
+      preferredLightColorTheme = "GitHub Light Default";
+      editor = {
+        enablePreview = false;
+        highlightModifiedTabs = true;
       };
-      "nushell" = {
-        "path" = "${pkgs.nushell}/bin/nu";
-        "icon" = "terminal-powershell";
-      };
-      "bash" = {
-        "path" = "${pkgs.bash}/bin/bash";
-        "icon" = "terminal-bash";
-      };
+      iconTheme = "vscode-icons";
+      layoutControl.enabled = false;
+      navigationControl.enabled = false;
     };
-  };
 
-  gitSettings = {
-    "git.autofetch" = true;
-    "git.confirmSync" = false;
-    "git.openRepositoryInParentFolders" = "never";
-  };
-
-  languageServerSettings = {
-    "nix.enableLanguageServer" = true;
-    "nix.serverPath" = "${pkgs.nil}/bin/nil";
-    "nix.serverSettings" = {
-      "nil" = {
-        "formatting" = {
-          "command" = [ "${pkgs.nixfmt-rfc-style}/bin/nixfmt" ];
+    terminal.integrated = {
+      fontFamily = fontsCfg.terminalFontFamily;
+      fontSize = fontsCfg.sizes.terminal;
+      smoothScrolling = true;
+      defaultProfile.linux = "bash";
+      profiles.linux = {
+        fish = {
+          path = "${pkgs.fish}/bin/fish";
+          icon = "terminal-bash";
         };
-        "diagnostics" = {
-          "ignored" = [
-            "unused_binding"
-            "unused_with"
-          ];
+        nushell = {
+          path = "${pkgs.nushell}/bin/nu";
+          icon = "terminal-powershell";
+        };
+        bash = {
+          path = "${pkgs.bash}/bin/bash";
+          icon = "terminal-bash";
         };
       };
     };
 
-    "rust-analyzer.check.command" = "clippy";
-    "rust-analyzer.completion.fullFunctionSignatures.enable" = true;
-    "rust-analyzer.completion.postfix.enable" = false;
-    "rust-analyzer.completion.privateEditable.enable" = true;
-    "rust-analyzer.diagnostics.enable" = false;
-    "rust-analyzer.imports.preferNoStd" = true;
-    "rust-analyzer.lens.references.method.enable" = true;
-
-    "python.analysis.typeCheckingMode" = "strict";
-
-  };
-
-  extensionSettings = {
-    "direnv.restart.automatic" = true;
-    "nixEnvSelector.useFlakes" = true;
-    "extensions.autoCheckUpdates" = false;
-    "extensions.autoUpdate" = false;
-
-    "errorLens.enabledDiagnosticLevels" = [
-      "error"
-      "hint"
-      "info"
-      "warning"
-    ];
-    "errorLens.messageEnabled" = true;
-
-    "typos.path" = "${pkgs.typos-lsp}/bin/typos-lsp";
-    "typos.diagnosticSeverity" = "Information";
-
-    "markdown.extension.completion.enabled" = true;
-    "markdown.extension.toc.orderedList" = true;
-    "markdownlint.config" = {
-      "extends" = null;
+    git = {
+      autofetch = true;
+      confirmSync = false;
+      openRepositoryInParentFolders = "never";
     };
 
-    "evenBetterToml.formatter.reorderKeys" = true;
-    "evenBetterToml.formatter.reorderArrays" = false;
-    "evenBetterToml.formatter.reorderInlineTables" = true;
-    "evenBetterToml.taplo.extraArgs" = [
-      "--option"
-      "reorder_keys=true"
-      "--option"
-      "reorder_arrays=true"
-    ];
+    nix = {
+      enableLanguageServer = true;
+      serverPath = "${pkgs.nil}/bin/nil";
+      formatterPath = "nixfmt";
 
-    "githubPullRequests.terminalLinksHandler" = "github";
-    "githubPullRequests.pullBranch" = "never";
+    };
 
-    "lean4.automaticallyBuildDependencies" = true;
-  };
+    rust-analyzer = {
+      check.command = "clippy";
+      completion = {
+        fullFunctionSignatures.enable = true;
+        postfix.enable = false;
+        privateEditable.enable = true;
+      };
+      diagnostics.enable = false;
+      imports.preferNoStd = true;
+      lens.references.method.enable = true;
+    };
 
-  copilotFeatureSettings = {
-    "github.copilot.chat.codesearch.enabled" = true;
-    "github.copilot.chat.editor.temporalContext.enabled" = true;
-    "github.copilot.chat.edits.temporalContext.enabled" = true;
-    "github.copilot.chat.generateTests.codeLens" = true;
-    "github.copilot.chat.newWorkspaceCreation.enabled" = true;
-    "github.copilot.chat.search.semanticTextResults" = true;
-    "github.copilot.nextEditSuggestions.enabled" = true;
-    "github.copilot.chat.agent.thinkingTool" = true;
-    "github.copilot.chat.useProjectTemplates" = false;
-    "github.copilot.nextEditSuggestions.fixes" = true;
-    "githubPullRequests.experimental.chat" = true;
-    "githubPullRequests.experimental.notificationsView" = true;
-    "githubPullRequests.experimental.useQuickChat" = true;
-  };
+    python.analysis.typeCheckingMode = "strict";
 
-  projectManagerSettings = {
-    "projectManager.git.baseFolders" = cfg.projectManagerBaseFolders;
+    direnv.restart.automatic = true;
+
+    extensions = {
+      autoCheckUpdates = false;
+      autoUpdate = false;
+    };
+
+    typos = {
+      path = "${pkgs.typos-lsp}/bin/typos-lsp";
+      diagnosticSeverity = "Information";
+    };
+
+    markdownlint.config.extends = null;
+
+    evenBetterToml = {
+      formatter = {
+        reorderKeys = true;
+        reorderArrays = false;
+        reorderInlineTables = true;
+      };
+      taplo.extraArgs = [
+        "--option"
+        "reorder_keys=true"
+        "--option"
+        "reorder_arrays=true"
+      ];
+    };
+
+    githubPullRequests = {
+      terminalLinksHandler = "github";
+      pullBranch = "never";
+      experimental = {
+        chat = true;
+        notificationsView = true;
+        useQuickChat = true;
+      };
+    };
+
+    github.copilot = {
+      chat = {
+        codesearch.enabled = true;
+        editor.temporalContext.enabled = true;
+        edits.temporalContext.enabled = true;
+        generateTests.codeLens = true;
+        newWorkspaceCreation.enabled = true;
+        search.semanticTextResults = true;
+        agent = {
+          thinkingTool = true;
+          runTasks = true;
+          autoFix = true;
+        };
+        useProjectTemplates = false;
+        codeGeneration.useInstructionFiles = true;
+      };
+      nextEditSuggestions = {
+        enabled = true;
+        fixes = true;
+      };
+    };
+
+    chat = {
+      agent = {
+        enabled = true;
+        maxRequests = 100000;
+      };
+      tools = {
+        global.autoApprove = true;
+        edits.autoApprove = {
+          "**/*" = true;
+          "**/.vscode/*.json" = false;
+          "**/.env" = false;
+          "**/configuration.nix" = false;
+          "**/hardware-configuration.nix" = false;
+        };
+        terminal.autoApprove = agentCfg.generated.terminalAutoApproval;
+      };
+      checkpoints = {
+        enabled = true;
+        showFileChanges = true;
+      };
+      extensionTools.enabled = true;
+    };
+
+    projectManager.git.baseFolders = cfg.projectManagerBaseFolders;
+
+    "[css]".editor.defaultFormatter = "vscode.css-language-features";
+    "[html]".editor.defaultFormatter = "vscode.html-language-features";
+    "[javascript]".editor.defaultFormatter = "vscode.typescript-language-features";
+    "[json]".editor.defaultFormatter = "vscode.json-language-features";
+    "[jsonc]".editor.defaultFormatter = "vscode.json-language-features";
+    "[markdown]".editor.defaultFormatter = "DavidAnson.vscode-markdownlint";
+    "[nix]".editor.defaultFormatter = "jnoortheen.nix-ide";
+    "[nushell]" = {
+      editor = {
+        defaultFormatter = "TheNuProjectContributors.vscode-nushell-lang";
+        formatOnSave = true;
+      };
+    };
+    "[rust]".editor.defaultFormatter = "rust-lang.rust-analyzer";
+    "[scss]".editor.defaultFormatter = "vscode.css-language-features";
+    "[python]".editor.defaultFormatter = "charliermarsh.ruff";
+    "[c]".editor.formatOnSave = false;
+    "[cpp]".editor.formatOnSave = false;
   };
 
   generateLanguageInstructionFile =
@@ -346,33 +343,6 @@ let
 
       ${instructionsText}
     '';
-
-  copilotBaseInstructionsSettings = {
-    "github.copilot.chat.codeGeneration.useInstructionFiles" = true;
-  };
-
-  copilotAutoApprovalSettings = {
-    "chat.agent.enabled" = true;
-    "chat.agent.maxRequests" = 100000;
-    "github.copilot.chat.agent.runTasks" = true;
-    "github.copilot.chat.agent.autoFix" = true;
-    "github.copilot.nextEditSuggestions.enabled" = true;
-    "chat.tools.autoApprove" = true;
-    "chat.tools.global.autoApprove" = true;
-    "chat.tools.edits.autoApprove" = {
-      "**/*" = true;
-      "**/.vscode/*.json" = false;
-      "**/.env" = false;
-      "**/configuration.nix" = false;
-      "**/hardware-configuration.nix" = false;
-    };
-
-    "chat.tools.terminal.autoApprove" = agentCfg.generated.terminalAutoApproval;
-
-    "chat.checkpoints.enabled" = true;
-    "chat.checkpoints.showFileChanges" = true;
-    "chat.extensionTools.enabled" = true;
-  };
 
   fixVscodeExtensionsScript = pkgs.writers.writeNuBin "fix-vscode-extensions" (
     builtins.readFile ./fix-vscode-extensions.nu
@@ -449,42 +419,42 @@ in
         '';
       };
 
-      additionalMarketplaceExtensions = lib.mkOption {
-        type = lib.types.listOf lib.types.attrs;
-        default = [ ];
-        description = "Additional marketplace extensions to install (beyond defaults)";
-        example = lib.literalExpression ''
-          [
-            {
-              name = "lean4";
-              publisher = "leanprover";
-              version = "0.0.209";
-              sha256 = "qkfTEeTGaMNKXNmhU1hlyn/0J38xXsFRuf6wBnAYkZI=";
-            }
-          ]
-        '';
-      };
-
       additionalExtensions = lib.mkOption {
         type = lib.types.listOf lib.types.package;
         default = [ ];
-        description = "Additional extensions from nixpkgs to install (beyond defaults)";
+        description = ''
+          Additional extensions to install (beyond defaults).
+          Can include extensions from pkgs.vscode-extensions (nixpkgs) or
+          pkgs.vscode-marketplace (nix-vscode-extensions overlay).
+        '';
         example = lib.literalExpression ''
-          with pkgs.vscode-extensions; [
+          (with pkgs.vscode-marketplace; [
+            leanprover.lean4
+          ])
+          ++ (with pkgs.vscode-extensions; [
             rust-lang.rust-analyzer
             ms-vscode.cpptools
-          ]
+          ])
         '';
       };
 
       additionalUserSettings = lib.mkOption {
         type = lib.types.attrs;
         default = { };
-        description = "Additional user settings to merge with defaults";
+        description = ''
+          Additional user settings to merge with defaults.
+          Settings can be specified as nested attribute sets which will be
+          flattened to dot-notation format for VSCode.
+        '';
         example = lib.literalExpression ''
           {
-            "projectManager.git.baseFolders" = [ "~/Code" ];
-            "github.copilot.enable"."rust" = true;
+            editor.fontSize = 16;
+            terminal.integrated.fontSize = 14;
+            github.copilot.enable = {
+              "*" = true;
+              rust = false;
+              python = false;
+            };
           }
         '';
       };
@@ -497,7 +467,7 @@ in
 
       projectManagerBaseFolders = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [ ];
+        default = [ "${config.home.homeDirectory}/Code" ];
         description = "Base folders for Project Manager extension";
       };
 
@@ -555,20 +525,9 @@ in
 
         vscodeSettings = lib.mkIf cfg.mutableUserSettings (
           let
-            mergedSettings =
-              languageFormatters
-              // editorSettings
-              // windowSettings
-              // terminalSettings
-              // gitSettings
-              // languageServerSettings
-              // extensionSettings
-              // (if cfg.includeAgentInstructions then copilotBaseInstructionsSettings else { })
-              // (if cfg.enableAutoApproval then copilotAutoApprovalSettings else { })
-              // (if cfg.enableCopilotExperimentalFeatures then copilotFeatureSettings else { })
-              // (if cfg.projectManagerBaseFolders != [ ] then projectManagerSettings else { })
-              // cfg.additionalUserSettings;
-
+            mergedSettings = flattenVscodeSettings (
+              lib.recursiveUpdate defaultSettings cfg.additionalUserSettings
+            );
             jsonFormat = pkgs.formats.json { };
             settingsJson = jsonFormat.generate "vscode-settings.json" mergedSettings;
           in
@@ -603,27 +562,10 @@ in
       inherit (cfg) mutableExtensionsDir;
 
       profiles.default = {
-        extensions =
-          defaultNixpkgsExtensions
-          ++ defaultMarketplaceExtensions
-          ++ (mkMarketplaceExts cfg.additionalMarketplaceExtensions)
-          ++ cfg.additionalExtensions;
+        extensions = defaultNixpkgsExtensions ++ defaultMarketplaceExtensions ++ cfg.additionalExtensions;
 
         userSettings = lib.mkIf (!cfg.mutableUserSettings) (
-          lib.mkMerge [
-            languageFormatters
-            editorSettings
-            windowSettings
-            terminalSettings
-            gitSettings
-            languageServerSettings
-            extensionSettings
-            copilotBaseInstructionsSettings
-            copilotAutoApprovalSettings
-            (lib.mkIf cfg.enableCopilotExperimentalFeatures copilotFeatureSettings)
-            (lib.mkIf (cfg.projectManagerBaseFolders != [ ]) projectManagerSettings)
-            cfg.additionalUserSettings
-          ]
+          flattenVscodeSettings (lib.recursiveUpdate defaultSettings cfg.additionalUserSettings)
         );
       };
     };

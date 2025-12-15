@@ -213,14 +213,7 @@ in
     };
 
     programs.vscode-extended = lib.mkIf cfg.watchers.vscode {
-      additionalMarketplaceExtensions = [
-        {
-          name = "aw-watcher-vscode";
-          publisher = "activitywatch";
-          version = "0.5.0";
-          sha256 = "OrdIhgNXpEbLXYVJAx/jpt2c6Qa5jf8FNxqrbu5FfFs=";
-        }
-      ];
+      additionalExtensions = [ pkgs.vscode-marketplace.activitywatch.aw-watcher-vscode ];
     };
   };
 }
