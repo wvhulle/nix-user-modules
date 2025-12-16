@@ -11,6 +11,8 @@ let
   getLangServers = langName: lib.attrNames (langCfg.languages.${langName}.servers or { });
 
   getLangFormatter = langName: langCfg.languages.${langName}.formatter or null;
+
+  getLangDebugger = langName: langCfg.languages.${langName}.debugger or null;
 in
 {
   options.programs.helix-extended = {
@@ -67,22 +69,35 @@ in
             };
 
             mkLanguageConfig =
-              langName: _:
+              langName: langConfig:
               let
                 helixLangName = langNameMap.${langName} or langName;
                 formatter = getLangFormatter langName;
                 formatterName =
                   if formatter != null then formatter.package.pname or formatter.package.name else null;
+                debugger = getLangDebugger langName;
               in
               {
                 name = helixLangName;
                 auto-format = true;
                 language-servers = getLangServers langName;
               }
+              // lib.optionalAttrs (langConfig.scope != null) { inherit (langConfig) scope; }
+              // lib.optionalAttrs (langConfig.fileTypes != [ ]) {
+                file-types = langConfig.fileTypes;
+              }
+              // lib.optionalAttrs (langConfig.roots != [ ]) { inherit (langConfig) roots; }
               // lib.optionalAttrs (formatter != null) {
-                formatter = {
-                  command = getFormatterCommand formatterName formatter;
-                  args = formatter.args ++ lib.optional (langName == "markdown") helixLangName;
+                formatter.command = getFormatterCommand formatterName formatter;
+                formatter.args = formatter.args ++ lib.optional (langName == "markdown") helixLangName;
+              }
+              // lib.optionalAttrs (debugger != null && debugger.enable) {
+                debugger = {
+                  inherit (debugger) name transport command;
+                  inherit (debugger) templates;
+                }
+                // lib.optionalAttrs (debugger.args != [ ]) {
+                  inherit (debugger) args;
                 };
               };
 

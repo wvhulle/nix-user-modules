@@ -69,6 +69,73 @@ let
     };
   };
 
+  debuggerType = lib.types.submodule {
+    options = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to enable this debugger";
+      };
+      name = lib.mkOption {
+        type = lib.types.str;
+        description = "Name of the debugger (e.g., 'lldb-dap', 'gdb')";
+      };
+      transport = lib.mkOption {
+        type = lib.types.enum [
+          "stdio"
+          "tcp"
+        ];
+        default = "stdio";
+        description = "Transport protocol for the debugger";
+      };
+      command = lib.mkOption {
+        type = lib.types.str;
+        description = "Command to run the debugger";
+      };
+      package = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = null;
+        description = "Package providing the debugger";
+      };
+      args = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Additional arguments to pass to the debugger";
+      };
+      templates = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              name = lib.mkOption {
+                type = lib.types.str;
+                description = "Template name";
+              };
+              request = lib.mkOption {
+                type = lib.types.enum [
+                  "launch"
+                  "attach"
+                ];
+                description = "Type of debug request";
+              };
+              completion = lib.mkOption {
+                type = lib.types.listOf lib.types.anything;
+                default = [ ];
+                description = "Completion items for user prompts";
+              };
+              args = lib.mkOption {
+                type = lib.types.attrs;
+                default = { };
+                description = "Debug adapter arguments";
+              };
+            };
+          }
+        );
+        default = [ ];
+        description = "Debug templates for this debugger";
+      };
+    };
+  };
+
   typosServer = {
     package = pkgs.typos-lsp;
   };
@@ -81,6 +148,24 @@ let
         description = "Whether to enable this language";
       };
 
+      scope = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Tree-sitter scope identifier (e.g., 'source.rust')";
+      };
+
+      fileTypes = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "File extensions for this language";
+      };
+
+      roots = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Root markers for language workspace detection";
+      };
+
       formatter = lib.mkOption {
         type = lib.types.nullOr formatterType;
         default = null;
@@ -91,6 +176,12 @@ let
         type = lib.types.nullOr toolType;
         default = null;
         description = "Linter for this language";
+      };
+
+      debugger = lib.mkOption {
+        type = lib.types.nullOr debuggerType;
+        default = null;
+        description = "Debugger for this language";
       };
 
       servers = lib.mkOption {
@@ -109,6 +200,12 @@ let
         type = lib.types.listOf lib.types.str;
         default = [ ];
         description = "Additional paths to add to PATH for this language";
+      };
+
+      additionalPackages = lib.mkOption {
+        type = lib.types.listOf lib.types.package;
+        default = [ ];
+        description = "Additional packages to install for this language";
       };
     };
   };
@@ -134,9 +231,20 @@ let
     nix = {
       formatter.package = pkgs.nixfmt-rfc-style;
       servers = {
-        nil.package = pkgs.nil;
+        nixd = {
+          package = pkgs.nixd;
+          config = {
+            nixpkgs.expr = "import <nixpkgs> { }";
+            formatting.command = [ "nixfmt" ];
+            options = {
+              nixos.expr = ''(builtins.getFlake "${config.home.homeDirectory}/.config/nixos").nixosConfigurations.ryzen.options'';
+              home-manager.expr = ''(builtins.getFlake "${config.home.homeDirectory}/.config/nixos").homeConfigurations."${config.home.username}@ryzen".options'';
+            };
+          };
+        };
         typos-lsp = typosServer;
       };
+      additionalPackages = [ pkgs.nixpkgs-fmt ];
     };
     rust = {
       servers = {
@@ -156,7 +264,78 @@ let
         };
         typos-lsp = typosServer;
       };
+      debugger = {
+        name = "lldb-dap";
+        transport = "stdio";
+        package = pkgs.lldb;
+        command = "lldb-dap";
+        args = [ ];
+        templates = [
+          {
+            name = "binary";
+            request = "launch";
+            completion = [
+              {
+                name = "binary";
+                completion = "filename";
+              }
+            ];
+            args = {
+              program = "{0}";
+            };
+          }
+          {
+            name = "binary (terminal)";
+            request = "launch";
+            completion = [
+              {
+                name = "binary";
+                completion = "filename";
+              }
+            ];
+            args = {
+              program = "{0}";
+              runInTerminal = true;
+            };
+          }
+          {
+            name = "attach";
+            request = "attach";
+            completion = [ "pid" ];
+            args = {
+              pid = "{0}";
+            };
+          }
+          {
+            name = "gdbserver attach";
+            request = "attach";
+            completion = [
+              {
+                name = "lldb connect url";
+                default = "connect://localhost:3333";
+              }
+              {
+                name = "file";
+                completion = "filename";
+              }
+              "pid"
+            ];
+            args = {
+              attachCommands = [
+                "platform select remote-gdb-server"
+                "platform connect {0}"
+                "file {1}"
+                "attach {2}"
+              ];
+            };
+          }
+        ];
+      };
       additionalPaths = [ "${config.home.homeDirectory}/.cargo/bin" ];
+      additionalPackages = [
+        pkgs.rustup
+        pkgs.taplo
+      ];
     };
     typst = {
       formatter.package = pkgs.typstyle;
@@ -187,6 +366,204 @@ let
         ];
       };
       servers.typos-lsp = typosServer;
+      additionalPackages = [
+        pkgs.zola
+        pkgs.presenterm
+      ];
+    };
+    cpp = {
+      compiler.package = pkgs.clang;
+      formatter = {
+        package = pkgs.clang-tools;
+        command = "clang-format";
+      };
+      linter = {
+        package = pkgs.clang-tools;
+        args = [ "--checks=*" ];
+      };
+      debugger = {
+        name = "gdb";
+        transport = "stdio";
+        package = pkgs.gdb;
+        command = "gdb";
+        args = [ "--interpreter=mi" ];
+        templates = [
+          {
+            name = "binary";
+            request = "launch";
+            completion = [
+              {
+                name = "binary";
+                completion = "filename";
+              }
+            ];
+            args = {
+              console = "internalConsole";
+              program = "{0}";
+            };
+          }
+          {
+            name = "binary (terminal)";
+            request = "launch";
+            completion = [
+              {
+                name = "binary";
+                completion = "filename";
+              }
+            ];
+            args = {
+              program = "{0}";
+              runInTerminal = true;
+            };
+          }
+          {
+            name = "attach";
+            request = "attach";
+            completion = [ "pid" ];
+            args = {
+              pid = "{0}";
+            };
+          }
+          {
+            name = "core dump";
+            request = "launch";
+            completion = [
+              {
+                name = "binary";
+                completion = "filename";
+              }
+              {
+                name = "core file";
+                completion = "filename";
+              }
+            ];
+            args = {
+              program = "{0}";
+              coreFile = "{1}";
+            };
+          }
+          {
+            name = "gdbserver attach";
+            request = "attach";
+            completion = [
+              {
+                name = "gdb connect url";
+                default = "localhost:3333";
+              }
+              {
+                name = "file";
+                completion = "filename";
+              }
+              "pid"
+            ];
+            args = {
+              attachCommands = [
+                "target remote {0}"
+                "file {1}"
+                "attach {2}"
+              ];
+            };
+          }
+        ];
+      };
+      servers = {
+        clangd = {
+          package = pkgs.clang-tools;
+          args = [
+            "--query-driver=**/*clang++,**/*g++"
+            "--header-insertion=never"
+            "--completion-style=detailed"
+            "--clang-tidy"
+          ];
+        };
+      };
+      additionalPackages = [
+        pkgs.cmake
+        pkgs.gnumake
+        pkgs.bear
+        pkgs.gdb
+        pkgs.watchexec
+        pkgs.openssl
+        pkgs.pkg-config
+      ];
+    };
+    agda = {
+      scope = "source.agda";
+      fileTypes = [ "agda" ];
+      roots = [ ".git" ];
+      additionalPackages = [
+        pkgs.agda
+        pkgs.agdaPackages.standard-library
+      ];
+    };
+    coq = {
+      scope = "source.coq";
+      fileTypes = [ "v" ];
+      roots = [
+        ".git"
+        "_CoqProject"
+      ];
+      servers.vscoq = {
+        package = pkgs.coqPackages.vscoq-language-server;
+      };
+      additionalPackages = [ pkgs.coq ];
+    };
+    haskell = {
+      compiler.package = pkgs.haskell.compiler.ghc984;
+      servers.hls = {
+        package = pkgs.haskellPackages.haskell-language-server;
+      };
+      linter.package = pkgs.haskellPackages.hlint;
+      additionalPackages = [
+        pkgs.cabal-install
+        pkgs.haskellPackages.ghcid
+        pkgs.zlib
+      ];
+    };
+    javascript = {
+      servers = {
+        typescript = {
+          package = pkgs.typescript-language-server;
+        };
+        eslint = {
+          package = pkgs.vscode-langservers-extracted;
+        };
+      };
+      additionalPackages = [
+        pkgs.nodejs
+        pkgs.deno
+        pkgs.pnpm
+      ];
+    };
+    lean = {
+      scope = "source.lean";
+      fileTypes = [ "lean" ];
+      roots = [
+        ".git"
+        "lakefile.lean"
+        "lean-toolchain"
+      ];
+      additionalPackages = [ pkgs.elan ];
+    };
+    nickel = {
+      scope = "source.nickel";
+      fileTypes = [ "ncl" ];
+      roots = [ ".git" ];
+      servers.nls = {
+        package = pkgs.nls;
+      };
+      additionalPackages = [ pkgs.nickel ];
+    };
+    python = {
+      additionalPackages = [
+        pkgs.uv
+        pkgs.python3
+        pkgs.python3Packages.jupyter
+        pkgs.octave
+      ];
+    };
+    zig = {
+      additionalPackages = [ pkgs.zvm ];
     };
   };
 
@@ -212,8 +589,16 @@ let
     lib.mapAttrsToList (_: lang: lang.compiler) enabledLanguages
   );
 
+  allDebuggers = lib.filter (d: d != null && d.enable) (
+    lib.mapAttrsToList (_: lang: lang.debugger) enabledLanguages
+  );
+
   allAdditionalPaths = lib.flatten (
     lib.mapAttrsToList (_: lang: lang.additionalPaths) enabledLanguages
+  );
+
+  allAdditionalPackages = lib.flatten (
+    lib.mapAttrsToList (_: lang: lang.additionalPackages) enabledLanguages
   );
 in
 {
@@ -251,7 +636,9 @@ in
         (map (s: s.package) allServers)
         ++ (map (f: f.package) allFormatters)
         ++ (map (l: l.package) allLinters)
-        ++ (map (c: c.package) allCompilers);
+        ++ (map (c: c.package) allCompilers)
+        ++ (map (d: d.package) allDebuggers)
+        ++ allAdditionalPackages;
     };
   };
 }
