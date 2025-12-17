@@ -400,6 +400,7 @@ in
     programs.firefox = {
       enable = true;
       inherit (cfg) package;
+      nativeMessagingHosts = with pkgs; [ kdePackages.plasma-browser-integration ];
 
       policies = lib.mkMerge [
         cfg.additionalPolicies
