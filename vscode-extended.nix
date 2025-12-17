@@ -68,6 +68,7 @@ let
 
     constneo.vscode-nushell-format
 
+    anthropic.claude-code
     ms-vscode.vscode-websearchforcopilot
     willemvanhulle.nu-lint
     ziyasal.vscode-open-in-github
@@ -79,7 +80,6 @@ let
 
     alefragnani.project-manager
     codezombiech.gitignore
-    anthropic.claude-code
     jnoortheen.nix-ide
 
     foxundermoon.shell-format

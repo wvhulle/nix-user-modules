@@ -28,9 +28,9 @@ def --env atuin-pre-prompt [] {
 
 def atuin-search-cmd [...flags: string]: nothing -> string {
   let quoted_flags = $flags
-  | append '--interactive'
-  | each { $'"($in)"' }
-  | str join ' '
+    | append '--interactive'
+    | each { $'"($in)"' }
+    | str join ' '
 
   let search_line = 'let output = (run-external atuin search ' + $quoted_flags + ' e>| str trim)'
   let search_body = [
@@ -51,16 +51,16 @@ def atuin-search-cmd [...flags: string]: nothing -> string {
 }
 
 $env.config = $env.config
-| default {} hooks
-| upsert hooks.pre_execution { $in | default [] | append {|| atuin-pre-execution } }
-| upsert hooks.pre_prompt { $in | default [] | append {|| atuin-pre-prompt } }
-| default [] keybindings
-| upsert keybindings {
-  $in | append {
-    name: atuin
-    modifier: control
-    keycode: char_r
-    mode: [emacs vi_normal vi_insert]
-    event: {send: executehostcommand cmd: (atuin-search-cmd)}
+  | default {} hooks
+  | upsert hooks.pre_execution { $in | default [] | append {|| atuin-pre-execution } }
+  | upsert hooks.pre_prompt { $in | default [] | append {|| atuin-pre-prompt } }
+  | default [] keybindings
+  | upsert keybindings {
+    $in | append {
+      name: atuin
+      modifier: control
+      keycode: char_r
+      mode: [emacs vi_normal vi_insert]
+      event: {send: executehostcommand cmd: (atuin-search-cmd)}
+    }
   }
-}
