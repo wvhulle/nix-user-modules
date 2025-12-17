@@ -213,7 +213,7 @@ in
     sizes = {
       terminal = lib.mkOption {
         type = lib.types.int;
-        default = 10;
+        default = 9;
         description = "Font size for terminal emulators";
       };
       editor = lib.mkOption {

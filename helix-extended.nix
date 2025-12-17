@@ -36,14 +36,14 @@ in
           # ];
           auto-format = true;
 
-          auto-save = {
-            enable = true;
-            focus-lost = true;
-            after-delay = {
-              enable = true;
-              timeout = 1000;
-            };
-          };
+          # auto-save = {
+          #   enable = true;
+          #   focus-lost = true;
+          #   after-delay = {
+          #     enable = true;
+          #     timeout = 1000;
+          #   };
+          # };
           bufferline = "multiple";
           indent-guides = {
             render = true;
