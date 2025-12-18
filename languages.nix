@@ -470,6 +470,7 @@ let
         clangd = {
           package = pkgs.clang-tools;
           args = [
+            "--background-index"
             "--query-driver=**/*clang++,**/*g++"
             "--header-insertion=never"
             "--completion-style=detailed"
