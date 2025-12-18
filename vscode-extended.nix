@@ -113,7 +113,7 @@ let
     ms-vscode-remote.remote-ssh
     ms-vscode-remote.remote-ssh-edit
     ms-vscode.cmake-tools
-    ms-vscode.cpptools
+    llvm-vs-code-extensions.vscode-clangd
     ms-vsliveshare.vsliveshare
     myriad-dreamin.tinymist
     pkief.material-icon-theme
@@ -210,6 +210,17 @@ let
     };
 
     python.analysis.typeCheckingMode = "strict";
+
+    clangd = {
+      path = "${pkgs.clang-tools}/bin/clangd";
+      arguments = [
+        "--background-index"
+        "--clang-tidy"
+        "--completion-style=detailed"
+        "--header-insertion=never"
+        "--suggest-missing-includes"
+      ];
+    };
 
     direnv.restart.automatic = true;
 
@@ -319,8 +330,18 @@ let
     "[rust]".editor.defaultFormatter = "rust-lang.rust-analyzer";
     "[scss]".editor.defaultFormatter = "vscode.css-language-features";
     "[python]".editor.defaultFormatter = "charliermarsh.ruff";
-    "[c]".editor.formatOnSave = false;
-    "[cpp]".editor.formatOnSave = false;
+    "[c]" = {
+      editor = {
+        defaultFormatter = "llvm-vs-code-extensions.vscode-clangd";
+        formatOnSave = true;
+      };
+    };
+    "[cpp]" = {
+      editor = {
+        defaultFormatter = "llvm-vs-code-extensions.vscode-clangd";
+        formatOnSave = true;
+      };
+    };
   };
 
   generateLanguageInstructionFile =
@@ -416,7 +437,7 @@ in
           ])
           ++ (with pkgs.vscode-extensions; [
             rust-lang.rust-analyzer
-            ms-vscode.cpptools
+            llvm-vs-code-extensions.vscode-clangd
           ])
         '';
       };
