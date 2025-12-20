@@ -57,6 +57,15 @@ in
           soft-wrap = {
             enable = true;
           };
+
+        };
+        keys = {
+          normal = {
+            space.B = ''
+              :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
+            '';
+            "C-n" = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
+          };
         };
       };
 

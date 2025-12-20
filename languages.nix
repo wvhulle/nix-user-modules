@@ -269,9 +269,10 @@ let
             diagnostics.experimental.enable = true;
             cargo = {
               allFeatures = true;
-              allTargets = false;
+              allTargets = true;
             };
             check.command = "clippy";
+            procMacro = true;
           };
         };
         typos-lsp = typosServer;
