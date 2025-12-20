@@ -25,7 +25,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "ashen";
+        theme = "ao";
 
         editor = {
           # gutters = [

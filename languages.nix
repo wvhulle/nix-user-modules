@@ -231,16 +231,28 @@ let
     nix = {
       formatter.package = pkgs.nixfmt-rfc-style;
       servers = {
-        nixd = {
-          package = pkgs.nixd;
-          config = {
-            nixpkgs.expr = "import <nixpkgs> { }";
-            formatting.command = [ "nixfmt" ];
-            options = {
-              nixos.expr = ''(builtins.getFlake "${config.home.homeDirectory}/.config/nixos").nixosConfigurations.ryzen.options'';
-              home-manager.expr = ''(builtins.getFlake "${config.home.homeDirectory}/.config/nixos").homeConfigurations."${config.home.username}@ryzen".options'';
+        nixd =
+          let
+            myFlake = ''(builtins.getFlake "/etc/nixos")'';
+            hostName = "ryzen";
+            nixosOpts = "${myFlake}.nixosConfigurations.${hostName}.options";
+          in
+          {
+            command = "nixd";
+            args = [ "--semantic-tokens=true" ];
+
+            package = pkgs.nixd;
+            config.nixd = {
+              nixpkgs.expr = "import ${myFlake}.inputs.nixpkgs { }";
+              formatting.command = [ "${lib.getExe pkgs.nixfmt-rfc-style}" ];
+              options = {
+                nixos.expr = nixosOpts;
+                home-manager.expr = "${nixosOpts}.home-manager.users.type.getSubOptions []";
+              };
             };
           };
+        nil = {
+          package = pkgs.nil;
         };
         typos-lsp = typosServer;
       };

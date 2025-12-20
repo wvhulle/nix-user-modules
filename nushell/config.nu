@@ -60,6 +60,9 @@ alias zi = zoxide-zi
 # Atuin integration
 source ~/.local/share/atuin/init.nu
 
+# Configure new pipefail-like option that shows which pipeline element errored
+$env.config.display_errors.exit_code = true
+
 # Configure hooks
 $env.config.hooks = $env.config.hooks? | default {}
 $env.config.hooks.command_not_found = {|cmd| command-not-found $cmd }
