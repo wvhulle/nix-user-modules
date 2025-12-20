@@ -25,7 +25,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "ao";
+        theme = "carbon";
 
         editor = {
           # gutters = [
@@ -58,13 +58,33 @@ in
             enable = true;
           };
 
+          shell = [
+            "nu"
+            "-c"
+          ];
+
         };
+
         keys = {
+          insert = {
+            S-tab = "move_parent_node_start";
+          };
+
+          select = {
+            tab = "extend_parent_node_end";
+            S-tab = "extend_parent_node_start";
+
+          };
           normal = {
-            space.B = ''
-              :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
-            '';
-            "C-n" = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
+            tab = "move_parent_node_end";
+            S-tab = "move_parent_node_start";
+
+            space = {
+              B = ''
+                :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
+              '';
+              N = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
+            };
           };
         };
       };
