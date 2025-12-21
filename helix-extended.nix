@@ -28,6 +28,11 @@ in
         theme = "carbon";
 
         editor = {
+          completion-replace = true;
+          lsp = {
+            display-progress-messages = true;
+          };
+          # line-number = "relative";
           # gutters = [
           #   "diff"
           #   "diagnostics"
@@ -78,7 +83,8 @@ in
           normal = {
             tab = "move_parent_node_end";
             S-tab = "move_parent_node_start";
-
+            S-l = ":buffer-next";
+            S-h = ":buffer-previous";
             space = {
               B = ''
                 :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
