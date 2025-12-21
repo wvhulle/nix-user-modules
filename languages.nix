@@ -557,6 +557,10 @@ let
         "lakefile.lean"
         "lean-toolchain"
       ];
+      servers.lean4 = {
+        command = "lake";
+        args = [ "serve" ];
+      };
       additionalPackages = [ pkgs.elan ];
     };
     nickel = {

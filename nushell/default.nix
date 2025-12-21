@@ -18,13 +18,10 @@ in
       type = lib.types.attrsOf lib.types.str;
       default = {
         ll = "${pkgs.eza}/bin/eza -la";
-        tree = "${pkgs.eza}/bin/eza --tree";
+        hm = "home-manager switch --flake /etc/nixos -b backup";
+        nr = "sudo nixos-rebuild switch --flake /etc/nixos";
       };
       description = "Shell aliases for nushell";
-      example = {
-        ll = "ls -la";
-        tree = "eza --tree";
-      };
     };
 
     environmentVariables = lib.mkOption {
