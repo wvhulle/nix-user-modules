@@ -36,7 +36,7 @@ def has-changes [
 ]: nothing -> bool {
   $new_servers
   | items {|name config|
-    let existing = $existing_servers | get $name
+    let existing = $existing_servers | get -o $name
     $existing == null or $existing != $config
   }
   | any {|x| $x }
@@ -68,7 +68,7 @@ def report-changes [
 ]: nothing -> nothing {
   $new_servers
   | items {|name _config|
-    if ($existing_servers | get $name) == null {
+    if ($existing_servers | get -o $name) == null {
       $"<info>  - Added: ($name)"
     } else {
       $"<info>  - Updated: ($name)"

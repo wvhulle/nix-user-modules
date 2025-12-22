@@ -140,6 +140,11 @@ let
     package = pkgs.typos-lsp;
   };
 
+  astGrepServer = {
+    package = pkgs.ast-grep;
+    args = [ "lsp" ];
+  };
+
   languageType = lib.types.submodule {
     options = {
       enable = lib.mkOption {
@@ -255,6 +260,7 @@ let
           package = pkgs.nil;
         };
         typos-lsp = typosServer;
+        ast-grep-lsp = astGrepServer;
       };
       additionalPackages = [ pkgs.nixpkgs-fmt ];
     };
@@ -276,6 +282,7 @@ let
           };
         };
         typos-lsp = typosServer;
+        ast-grep-lsp = astGrepServer;
       };
       debugger = {
         name = "lldb-dap";
@@ -367,6 +374,7 @@ let
           };
         };
         typos-lsp = typosServer;
+        ast-grep-lsp = astGrepServer;
       };
       compiler.package = pkgs.typst;
     };
@@ -490,6 +498,7 @@ let
             "--clang-tidy"
           ];
         };
+        ast-grep-lsp = astGrepServer;
       };
       additionalPackages = [
         pkgs.cmake
@@ -542,6 +551,7 @@ let
         eslint = {
           package = pkgs.vscode-langservers-extracted;
         };
+        ast-grep-lsp = astGrepServer;
       };
       additionalPackages = [
         pkgs.nodejs
@@ -573,6 +583,7 @@ let
       additionalPackages = [ pkgs.nickel ];
     };
     python = {
+      servers.ast-grep-lsp = astGrepServer;
       additionalPackages = [
         pkgs.uv
         pkgs.python3

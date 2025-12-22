@@ -54,6 +54,7 @@ in
           context7Pkg = pkgs.callPackage ./packages/context7.nix { };
           githubPkg = pkgs.callPackage ./packages/github-mcp-server.nix { };
           playwrightPkg = pkgs.callPackage ./packages/playwright.nix { };
+          astGrepMcpPkg = pkgs.callPackage ./packages/ast-grep-mcp.nix { };
           browserExecutable = lib.getExe pkgs.google-chrome;
 
         in
@@ -61,6 +62,13 @@ in
           context7 = {
             package = context7Pkg;
             command = "${lib.getExe context7Pkg}";
+            args = [ ];
+            env = { };
+          };
+
+          ast-grep = {
+            package = astGrepMcpPkg;
+            command = "${lib.getExe astGrepMcpPkg}";
             args = [ ];
             env = { };
           };
