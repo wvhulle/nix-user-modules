@@ -83,7 +83,7 @@ def report-changes [
 ]: nothing -> nothing {
   $new_servers
   | items {|name _config|
-    if ($existing_servers | get $name) == null {
+    if ($existing_servers | get -o $name) == null {
       print $"<info>  - Added: ($name)"
     } else {
       print $"<info>  - Updated: ($name)"

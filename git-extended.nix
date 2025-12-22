@@ -83,6 +83,7 @@ in
         enable = true;
         options = {
           color = "auto";
+          sort-paths = true;
         };
 
       };
@@ -96,9 +97,11 @@ in
           inherit (cfg.signing) key;
         };
 
+        # Cannot be used with difft
         # delta = {
-        #   enable = true;
+        #   # enable = true;
         #   options = {
+
         #     navigate = true;
         #     hyperlinks = true;
         #     line-numbers = true;

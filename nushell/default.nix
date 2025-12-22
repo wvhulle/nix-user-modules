@@ -56,7 +56,7 @@ in
         settings = lib.mkOption {
           type = lib.types.attrsOf lib.types.anything;
           default = {
-            sync_frequency = "10m";
+            sync_frequency = "5m";
             network_timeout = 30;
             network_connect_timeout = 5;
             local_timeout = 5;
@@ -139,6 +139,12 @@ in
         enableNushellIntegration = true;
         useTheme = cfg.shellIntegrations.ohMyPosh.theme;
       };
+
+      carapace = {
+        enable = true;
+        enableNushellIntegration = true;
+      };
+
     };
 
     home.file.".local/share/atuin/init.nu" = lib.mkIf cfg.shellIntegrations.atuin.enable {
