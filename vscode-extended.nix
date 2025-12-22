@@ -193,7 +193,7 @@ let
     nix = {
       enableLanguageServer = true;
       serverPath = "${pkgs.nil}/bin/nil";
-      formatterPath = "nixfmt";
+      formatterPath = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
 
     };
 
