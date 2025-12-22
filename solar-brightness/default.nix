@@ -125,6 +125,16 @@ in
             )
           }"
         ];
+
+        # Hardening
+        LockPersonality = true;
+        NoNewPrivileges = true;
+        RestrictNamespaces = true;
+        SystemCallArchitectures = "native";
+        ProtectHome = "read-only";
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
       };
       Install = {
         WantedBy = [ "graphical-session.target" ];

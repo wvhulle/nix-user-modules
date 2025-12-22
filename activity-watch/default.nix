@@ -133,6 +133,12 @@ in
           ExecStart = "${pkgs.activitywatch}/bin/aw-server --host ${cfg.server.host} --port ${toString cfg.server.port}";
           Restart = "always";
           RestartSec = "5";
+
+          # Hardening
+          LockPersonality = true;
+          NoNewPrivileges = true;
+          RestrictNamespaces = true;
+          SystemCallArchitectures = "native";
         };
 
         Install = {
@@ -156,6 +162,12 @@ in
               ExecStart = "${categoriesImportScript}/bin/aw-import-categories ${categoriesJson} --port ${toString cfg.server.port}";
               Restart = "on-failure";
               RestartSec = "10";
+
+              # Hardening
+              LockPersonality = true;
+              NoNewPrivileges = true;
+              RestrictNamespaces = true;
+              SystemCallArchitectures = "native";
             };
 
             Install = {
@@ -181,6 +193,12 @@ in
           ExecStart = "${pkgs.awatcher}/bin/awatcher";
           Restart = "on-failure";
           RestartSec = "10";
+
+          # Hardening
+          LockPersonality = true;
+          NoNewPrivileges = true;
+          RestrictNamespaces = true;
+          SystemCallArchitectures = "native";
         };
 
         Install = {
@@ -204,6 +222,12 @@ in
           ExecStart = "${pkgs.aw-watcher-afk}/bin/aw-watcher-afk";
           Restart = "always";
           RestartSec = "5";
+
+          # Hardening
+          LockPersonality = true;
+          NoNewPrivileges = true;
+          RestrictNamespaces = true;
+          SystemCallArchitectures = "native";
         };
 
         Install = {
