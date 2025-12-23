@@ -232,6 +232,8 @@ let
         };
         typos-lsp = typosServer;
       };
+
+      additionalPackages = [ pkgs.nu-lint ];
     };
     nix = {
       formatter.package = pkgs.nixfmt-rfc-style;
