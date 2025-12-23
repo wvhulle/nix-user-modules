@@ -73,6 +73,12 @@ in
             env = { };
           };
 
+          nu = {
+            package = pkgs.nushell;
+            command = lib.getExe pkgs.nushell;
+            args = [ "--mcp" ];
+          };
+
           github = {
             package = githubPkg;
             command = "${lib.getExe githubPkg}";
