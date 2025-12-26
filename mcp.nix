@@ -85,7 +85,8 @@ in
             args = [ "stdio" ];
             env = {
               # Token is obtained from gh CLI at runtime via command substitution
-              GITHUB_PERSONAL_ACCESS_TOKEN = "$(${pkgs.gh}/bin/gh auth token 2>/dev/null || echo \${GITHUB_PERSONAL_ACCESS_TOKEN:-})";
+
+              GITHUB_PERSONAL_ACCESS_TOKEN = "$(${pkgs.gh}/bin/gh auth token)";
             };
           };
 

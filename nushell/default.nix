@@ -18,8 +18,6 @@ in
       type = lib.types.attrsOf lib.types.str;
       default = {
         ll = "${pkgs.eza}/bin/eza -la";
-        hm = "home-manager switch --flake /etc/nixos -b backup";
-        nr = "sudo nixos-rebuild switch --flake /etc/nixos";
       };
       description = "Shell aliases for nushell";
     };

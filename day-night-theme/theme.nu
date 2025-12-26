@@ -154,7 +154,7 @@ export def "theme konsole" [
     complete_konsole_themes | print
   } else {
     run_theme_command $"Switching Konsole to ($theme_name)" {
-      ^konsole-theme-nu $theme_name
+      konsole-theme-nu $theme_name
     }
   }
 }

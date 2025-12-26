@@ -145,6 +145,7 @@ let
 
     window = {
       autoDetectColorScheme = true;
+
       titleBarStyle = "native";
       commandCenter = false;
       menuBarVisibility = "toggle";
@@ -152,8 +153,8 @@ let
 
     workbench = {
       list.smoothScrolling = true;
-      preferredDarkColorTheme = "GitHub Dark Default";
-      preferredLightColorTheme = "GitHub Light Default";
+      preferredDarkColorTheme = "GitHub Dark";
+      preferredLightColorTheme = "GitHub Light";
       editor = {
         enablePreview = false;
         highlightModifiedTabs = true;
@@ -193,7 +194,7 @@ let
     nix = {
       enableLanguageServer = true;
       serverPath = "${pkgs.nil}/bin/nil";
-      formatterPath = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+      formatterPath = "nixfmt";
 
     };
 
