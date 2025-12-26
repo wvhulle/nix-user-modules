@@ -377,10 +377,6 @@ let
       ${instructionsText}
     '';
 
-  setupVscodeMcpScript = pkgs.writers.writeNuBin "setup-vscode-mcp" (
-    builtins.readFile ./setup-vscode-mcp.nu
-  );
-
   claudeProcessWrapper = pkgs.writeShellScript "claude-wrapper" ''
     exec ${pkgs.claude-code}/bin/claude "$@"
   '';
@@ -516,8 +512,9 @@ in
     );
 
     home = {
-      activation = {
+      extraActivationPath = [ pkgs.nushell ];
 
+      activation = {
         # Setup MCP servers configuration for VSCode
         setupVscodeMcpServers =
           let
@@ -532,8 +529,8 @@ in
             };
           in
           lib.mkIf (mcpCfg.enable && mcpCfg.servers != { }) (
-            lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-              ${setupVscodeMcpScript}/bin/setup-vscode-mcp --mcp-config '${mcpConfigJson}' --scope user
+            lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+              ${./setup-vscode-mcp.nu} --mcp-config '${mcpConfigJson}' --scope user
             ''
           );
       };

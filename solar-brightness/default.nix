@@ -9,10 +9,6 @@
 let
   cfg = config.programs.solar-brightness;
 
-  brightnessScript = pkgs.writers.writeNuBin "solar-brightness" (
-    builtins.readFile ./solar-brightness-manager.nu
-  );
-
   # Both Nushell and systemd accept compatible duration formats
   # Common units: sec, min, hr/h, day
 in
@@ -96,7 +92,7 @@ in
       Service = {
         Type = "oneshot";
         ExecStart = lib.concatStringsSep " " [
-          "${brightnessScript}/bin/solar-brightness"
+          "${./solar-brightness-manager.nu}"
           "adjust"
           "--min-brightness ${toString cfg.min-brightness}"
           "--max-brightness ${toString cfg.max-brightness}"
@@ -159,7 +155,9 @@ in
     home.packages = with pkgs; [
       heliocron
       ddcutil # For external monitors
-      brightnessScript
+      (pkgs.writers.writeNuBin "solar-brightness-manager" (
+        builtins.readFile ./solar-brightness-manager.nu
+      ))
     ];
   };
 }

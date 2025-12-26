@@ -39,15 +39,12 @@
       enable = true;
       extensions = [ "nix" ];
       instructions = [
-        "Use --no-pager when running systemd commands."
+        "Use the 'no pager' option when running commands that are often paged (such as `systemctl`)."
         "Never run any `find` command on the `/nix/store` folder based on filename, because absolute store paths slow to traverse and unpredictable."
         "Use `command-not-found BINARY` to find the nix package to install."
-        "Don't create new script/ directories, just embed script files directly in the parent directory."
-        "Check for nix configuration evaluation performance regressions when making changes to the nix import structure."
         "Use separate files for shell scripts, never inline them in nix files (unless it is a one-liner)."
-        "Prefer Nushell as the primary flavor for writing new shell scripting"
         "Never use nix built-in string replacement or substitution with `@` placeholders on external included files but implement command-line argument passing."
-        "Declare runtime dependencies for scripts in the related Nix systemd service definition and its path option. Don't add them globally."
+        "Declare runtime dependencies for scripts in the related Nix systemd service definition and its path option."
       ];
     };
 

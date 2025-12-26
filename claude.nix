@@ -10,9 +10,6 @@ let
   agentCfg = config.programs.agents;
   mcpCfg = config.programs.mcp-extended;
 
-  statuslineScript = pkgs.writers.writeNuBin "claude-code-statusline" ''
-    ^npx ccusage@latest statusline
-  '';
 in
 {
   options = {
@@ -45,6 +42,8 @@ in
     programs.mcp-extended.enable = true;
 
     home = {
+      extraActivationPath = [ pkgs.nushell ];
+
       packages = with pkgs; [
         nodejs
       ];
@@ -84,7 +83,7 @@ in
               // lib.optionalAttrs cfg.statusline.enable {
                 statusLine = {
                   type = "command";
-                  command = "${statuslineScript}/bin/claude-code-statusline";
+                  command = "${./claude-code-statusline.nu}";
                 };
               };
           in
@@ -101,12 +100,10 @@ in
               inherit (server) env;
             }) mcpCfg.servers;
           };
-
-          setupScript = pkgs.writers.writeNuBin "setup-claude-mcp" (builtins.readFile ./setup-claude-mcp.nu);
         in
         lib.mkIf (mcpCfg.servers != { }) (
-          lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-            ${setupScript}/bin/setup-claude-mcp --mcp-config '${mcpConfigJson}'
+          lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+            ${./setup-claude-mcp.nu} --mcp-config '${mcpConfigJson}'
           ''
         );
     };

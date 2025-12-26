@@ -15,19 +15,8 @@ let
     builtins.toJSON (flattenCategories cfg.categories)
   );
 
-  categoriesImportScript = pkgs.writers.writeNuBin "aw-import-categories" (
-    builtins.readFile ./import-categories.nu
-  );
-
   configFile = pkgs.writeText "aw-server-rust-config.toml" ''
     cors = ${builtins.toJSON cfg.server.corsOrigins}
-  '';
-
-  createConfigScript = pkgs.writers.writeNuBin "create-config-dirs" ''
-    let config_dir = $"($env.HOME)/.config/activitywatch/aw-server-rust"
-    ^mkdir -p $config_dir
-    ^rm -f $"($config_dir)/config.toml"
-    ^cp ${configFile} $"($config_dir)/config.toml"
   '';
 in
 {
@@ -129,7 +118,7 @@ in
 
         Service = {
           Type = "simple";
-          ExecStartPre = "${createConfigScript}/bin/create-config-dirs";
+          ExecStartPre = "${./create-config-dirs.nu} ${configFile}";
           ExecStart = "${pkgs.activitywatch}/bin/aw-server --host ${cfg.server.host} --port ${toString cfg.server.port}";
           Restart = "always";
           RestartSec = "5";
@@ -159,7 +148,7 @@ in
             Service = {
               Type = "oneshot";
               RemainAfterExit = false;
-              ExecStart = "${categoriesImportScript}/bin/aw-import-categories ${categoriesJson} --port ${toString cfg.server.port}";
+              ExecStart = "${./import-categories.nu} ${categoriesJson} --port ${toString cfg.server.port}";
               Restart = "on-failure";
               RestartSec = "10";
 

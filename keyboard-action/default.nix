@@ -8,11 +8,6 @@
 let
   cfg = config.programs.keyboard-action;
 
-  # Base monitor script
-  monitorScript = pkgs.writers.writeNuBin "keyboard-action-monitor" (
-    builtins.readFile ./keyboard-action-monitor.nu
-  );
-
   # Create a wrapper script for a specific key combination
   makeKeyboardMonitor =
     name: actionCfg:
@@ -22,7 +17,7 @@ let
       modifierSpecs = map (key: "${key.name}:${key.eventName}:${toString key.code}") modifierArgs;
     in
     pkgs.writeShellScriptBin "keyboard-action-${name}" ''
-      exec ${monitorScript}/bin/keyboard-action-monitor \
+      ${./keyboard-action-monitor.nu} \
         "${actionCfg.triggerKey.eventName}" \
         ${lib.concatStringsSep " \\\n        " (map lib.escapeShellArg modifierSpecs)} \
         --action "${actionCfg.action}" \
