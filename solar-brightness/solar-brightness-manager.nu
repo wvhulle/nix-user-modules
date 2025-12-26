@@ -40,7 +40,12 @@ def parse-ddc-displays [output: string]: nothing -> list {
 # Detect DDC/CI backends from ddcutil
 def detect-ddcci-backends []: nothing -> list<record> {
   let result = ddcutil detect | complete
-  if $result.exit_code != 0 { return [] }
+  if $result.exit_code != 0 {
+    if ($result.stderr | str trim) != "" {
+      print -e $"<warning>ddcutil detect failed: ($result.stderr | str trim)"
+    }
+    return []
+  }
 
   parse-ddc-displays $result.stdout | each {|display|
     {name: $"DDC/CI ($display.model)" type: "ddcci" display: $display.display}
@@ -269,7 +274,10 @@ def set-all-brightness-direct [backends_with_current: list target: float] {
     match $item.backend.type {
       "ddcci" => {
         let display_arg = if ($item.backend | get -o display) != null { $item.backend.display } else { 1 }
-        ddcutil setvcp 10 $percent --display $display_arg --noverify | complete | null
+        let ddc_result = ddcutil setvcp 10 $percent --display $display_arg --noverify | complete
+        if $ddc_result.exit_code != 0 and ($ddc_result.stderr | str trim) != "" {
+          print -e $"<warning>ddcutil setvcp failed for display ($display_arg): ($ddc_result.stderr | str trim)"
+        }
       }
       "backlight" => {
         let device_name = $item.backend.device | path basename
@@ -314,16 +322,16 @@ def run-brightness-adjustment [config: record] {
 
   # Get current brightness for all backends
   let backends_with_current = $config.backends | each {|backend|
-    let brightness = get-brightness $backend
-    print $"<debug>($backend.name): current=($brightness.normalized | math round -p 2), target=($target | math round -p 2)"
-    {backend: $backend current: $brightness.normalized}
-  }
+      let brightness = get-brightness $backend
+      print $"<debug>($backend.name): current=($brightness.normalized | math round -p 2), target=($target | math round -p 2)"
+      {backend: $backend current: $brightness.normalized}
+    }
 
   # Check if any screen needs adjustment
   let needs_adjustment = $backends_with_current | any {|item|
-    let diff = ($target - $item.current) | math abs
-    $diff > 0.01
-  }
+      let diff = ($target - $item.current) | math abs
+      $diff > 0.01
+    }
 
   if $needs_adjustment {
     let screen_count = $backends_with_current | length
@@ -431,9 +439,9 @@ def get-adjustment-status [is_stopped: bool backends: list --target: float]: not
   if $is_stopped { return "Adjustments postponed (timer stopped)" }
 
   let any_needs_adjustment = $backends | any {|backend|
-    let brightness = get-brightness $backend
-    (($target - $brightness.normalized) | math abs) > 0.01
-  }
+      let brightness = get-brightness $backend
+      (($target - $brightness.normalized) | math abs) > 0.01
+    }
 
   if $any_needs_adjustment { "Brightness adjustment needed" } else { "All screens at target level" }
 }
