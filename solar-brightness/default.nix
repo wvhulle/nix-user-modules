@@ -89,6 +89,7 @@ in
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
       };
+
       Service = {
         Type = "oneshot";
         ExecStart = lib.concatStringsSep " " [
@@ -103,14 +104,20 @@ in
           "--transition-max-step ${toString cfg.transition.max-step}"
           "--transition-step-delay ${cfg.transition.step-delay}"
         ];
+        SyslogIdentifier = "solar-brightness";
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
+        LogExtraFields = [
+          "SERVICE_CONTEXT=solar-brightness"
+          "HARDENING_NOTE=ProtectHome=read-only requires ReadWritePaths for caches"
+        ];
         Environment = [
           "PATH=${
             lib.makeBinPath (
               with pkgs;
               [
+                nushell
                 heliocron
                 bash
                 ddcutil
@@ -128,6 +135,7 @@ in
         RestrictNamespaces = true;
         SystemCallArchitectures = "native";
         ProtectHome = "read-only";
+        ReadWritePaths = [ "%h/.cache/ddcutil" ];
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
