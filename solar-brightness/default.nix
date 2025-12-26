@@ -108,10 +108,6 @@ in
         SyslogLevelPrefix = true;
         StandardOutput = "journal";
         StandardError = "journal";
-        LogExtraFields = [
-          "SERVICE_CONTEXT=solar-brightness"
-          "HARDENING_NOTE=ProtectHome=read-only requires ReadWritePaths for caches"
-        ];
         Environment = [
           "PATH=${
             lib.makeBinPath (
