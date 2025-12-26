@@ -8,32 +8,57 @@
 let
   cfg = config.programs.dayNightTheme;
 
-  konsole-theme-nu-bin = pkgs.writers.writeNuBin "konsole-theme-nu" (
-    builtins.readFile ./konsole-theme.nu
-  );
+  lightDarkApp = lib.types.submodule {
+    options = {
+      dark = lib.mkOption {
+        type = lib.types.str;
+        description = "Theme name for dark mode";
+      };
+      light = lib.mkOption {
+        type = lib.types.str;
+        description = "Theme name for light mode";
+      };
+      script = lib.mkOption {
+        type = lib.types.path;
+        description = "Path to the theme switching script";
+      };
+      args = lib.mkOption {
+        type = lib.types.functionTo (lib.types.listOf lib.types.str);
+        description = "Function that takes theme name and returns args list";
+        default = theme: [ theme ];
+      };
+    };
+  };
 
-  themeScript = pkgs.writers.writeNuBin "theme" (builtins.readFile ./theme.nu);
+  lightDarkAppSet = lib.types.attrsOf lightDarkApp;
 
   makeThemeScript =
-    subcommand: args:
+    name: app: theme:
     let
+      args = app.args theme;
       argStr = lib.concatStringsSep " " (map lib.escapeShellArg args);
       scriptPath = pkgs.lib.makeBinPath [
+        pkgs.nushell
         pkgs.coreutils
         pkgs.glib
         pkgs.systemd
         pkgs.kdePackages.plasma-workspace
-        konsole-theme-nu-bin
       ];
       xdgDataDirs = pkgs.lib.concatStringsSep ":" [
         "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
         "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
       ];
     in
-    pkgs.writeShellScript "theme-${subcommand}" ''
+    pkgs.writeShellScript "theme-${name}" ''
       export PATH="${scriptPath}:$PATH"
       export XDG_DATA_DIRS="${xdgDataDirs}"
-      ${themeScript}/bin/theme ${subcommand} ${argStr}
+      ${pkgs.nushell}/bin/nu ${app.script} ${argStr}
+    '';
+
+  makeThemeBin =
+    name: script:
+    pkgs.writeShellScriptBin name ''
+      exec ${pkgs.nushell}/bin/nu ${script} "$@"
     '';
 in
 {
@@ -60,104 +85,47 @@ in
       };
     };
 
-    themes = {
-      gtk = {
-        dark = lib.mkOption {
-          type = lib.types.str;
-          default = "Breeze-Dark";
-          description = "GTK theme name for dark mode";
+    apps = lib.mkOption {
+      type = lightDarkAppSet;
+      default = {
+        gtk = {
+          dark = "Breeze-Dark";
+          light = "Breeze";
+          script = ./gtk-theme.nu;
         };
 
-        light = lib.mkOption {
-          type = lib.types.str;
-          default = "Breeze";
-          description = "GTK theme name for light mode";
-        };
-      };
-
-      plasma = {
-        dark = {
-          lookAndFeel = lib.mkOption {
-            type = lib.types.str;
-            default = "org.kde.breezedark.desktop";
-            description = "Plasma look and feel for dark mode";
-          };
-
-          colorScheme = lib.mkOption {
-            type = lib.types.str;
-            default = "BreezeDark";
-            description = "Plasma color scheme for dark mode";
-          };
+        plasma = {
+          dark = "org.kde.breezedark.desktop BreezeDark";
+          light = "org.kde.breeze.desktop BreezeLight";
+          script = ./plasma-theme.nu;
+          args = theme: lib.splitString " " theme;
         };
 
-        light = {
-          lookAndFeel = lib.mkOption {
-            type = lib.types.str;
-            default = "org.kde.breeze.desktop";
-            description = "Plasma look and feel for light mode";
-          };
-
-          colorScheme = lib.mkOption {
-            type = lib.types.str;
-            default = "BreezeLight";
-            description = "Plasma color scheme for light mode";
-          };
-        };
-      };
-
-      konsole = {
-        dark = lib.mkOption {
-          type = lib.types.str;
-          default = "Dark";
-          description = "Konsole theme name for dark mode";
+        konsole = {
+          dark = "Dark";
+          light = "Light";
+          script = ./konsole-theme.nu;
         };
 
-        light = lib.mkOption {
-          type = lib.types.str;
-          default = "Light";
-          description = "Konsole theme name for light mode";
-        };
-      };
-
-      cursor = {
-        dark = lib.mkOption {
-          type = lib.types.str;
-          default = "Breeze_Snow";
-          description = "Cursor theme name for dark mode";
+        cursor = {
+          dark = "Breeze_Snow";
+          light = "Breeze_Light";
+          script = ./cursor-theme.nu;
         };
 
-        light = lib.mkOption {
-          type = lib.types.str;
-          default = "Breeze_Light";
-          description = "Cursor theme name for light mode";
+        kitty = {
+          dark = "catppuccin-mocha";
+          light = "catppuccin-latte";
+          script = ./kitty-theme.nu;
+        };
+
+        claude-code = {
+          dark = "dark";
+          light = "light";
+          script = ./claude-code-theme.nu;
         };
       };
-    };
-
-    darkman = {
-      useGeoclue = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Use geoclue for automatic location detection";
-      };
-
-      dbusServer = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable D-Bus server for darkman";
-      };
-
-      portal = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Enable portal integration";
-      };
-
-      extraSettings = lib.mkOption {
-        type = lib.types.attrs;
-        default = { };
-        description = "Additional settings to pass to darkman";
-      };
+      description = "Applications with dark/light theme support";
     };
 
     extraDarkModeScripts = lib.mkOption {
@@ -195,45 +163,30 @@ in
         ];
         startupNotify = false;
       })
-    ];
+    ]
+    ++ (lib.mapAttrsToList (name: app: makeThemeBin "${name}-theme" app.script) cfg.apps);
 
     services.darkman = {
       enable = true;
 
-      settings = lib.mkMerge [
-        {
-          lat = cfg.location.latitude;
-          lng = cfg.location.longitude + cfg.location.longitudeOffset;
-          dbusserver = cfg.darkman.dbusServer;
-          inherit (cfg.darkman) portal;
-          usegeoclue = cfg.darkman.useGeoclue;
-        }
-        cfg.darkman.extraSettings
-      ];
+      settings = {
+        lat = cfg.location.latitude;
+        lng = cfg.location.longitude + cfg.location.longitudeOffset;
+        dbusserver = true;
+        portal = true;
+      };
 
       darkModeScripts = lib.mkMerge [
-        {
-          gtk-theme = makeThemeScript "gtk" [ cfg.themes.gtk.dark ];
-          plasma-theme = makeThemeScript "plasma" [
-            cfg.themes.plasma.dark.lookAndFeel
-            cfg.themes.plasma.dark.colorScheme
-          ];
-          konsole-theme = makeThemeScript "konsole" [ cfg.themes.konsole.dark ];
-          cursor-theme = makeThemeScript "cursor" [ cfg.themes.cursor.dark ];
-        }
+        (lib.mapAttrs' (
+          name: app: lib.nameValuePair "${name}-theme" (makeThemeScript name app app.dark)
+        ) cfg.apps)
         cfg.extraDarkModeScripts
       ];
 
       lightModeScripts = lib.mkMerge [
-        {
-          gtk-theme = makeThemeScript "gtk" [ cfg.themes.gtk.light ];
-          plasma-theme = makeThemeScript "plasma" [
-            cfg.themes.plasma.light.lookAndFeel
-            cfg.themes.plasma.light.colorScheme
-          ];
-          konsole-theme = makeThemeScript "konsole" [ cfg.themes.konsole.light ];
-          cursor-theme = makeThemeScript "cursor" [ cfg.themes.cursor.light ];
-        }
+        (lib.mapAttrs' (
+          name: app: lib.nameValuePair "${name}-theme" (makeThemeScript name app app.light)
+        ) cfg.apps)
         cfg.extraLightModeScripts
       ];
     };
