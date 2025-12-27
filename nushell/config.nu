@@ -117,6 +117,7 @@ def atuin-search-cmd [...flags: string]: nothing -> string {
   ] | str join "\n"
 }
 
+$env.config.hooks = $env.config.hooks? | default {}
 $env.config = $env.config
   | default {} hooks
   | upsert hooks.pre_execution { $in | default [] | append {|| atuin-pre-execution } }
@@ -136,7 +137,6 @@ $env.config = $env.config
 $env.config.display_errors.exit_code = true
 
 # Configure hooks
-$env.config.hooks = $env.config.hooks? | default {}
 $env.config.hooks.command_not_found = {|cmd| command-not-found $cmd }
 $env.config.hooks.env_change = $env.config.hooks.env_change? | default {}
 $env.config.hooks.env_change.PWD = (

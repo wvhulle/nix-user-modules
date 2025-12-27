@@ -10,7 +10,7 @@ let
 
   flattenAttrs =
     let
-      isLeaf = value: !lib.isAttrs value || (value ? Value) || (value ? Status);
+      isLeaf = value: !lib.isAttrs value;
 
       flatten =
         prefix: set:
@@ -178,14 +178,21 @@ let
       name = "read-aloud";
       id = "{ddc62400-f22d-4dd3-8b4a-05837de53c2e}";
     }
+    {
+      name = "styl-us";
+      id = "{7a7a4a92-a2a0-41d1-9fd7-1e92480d612d}";
+    }
   ];
 
   defaultPreferences = {
     browser = {
-      contentblocking.category = {
-        Value = "strict";
-        Status = "locked";
+
+      download = {
+        always_ask_before_handling_new_types = true;
+        useDownloadDir = false;
       };
+
+      contentblocking.category = "strict";
       newtabpage = {
         enabled = false;
         activity-stream = {
@@ -249,8 +256,8 @@ let
       ssl.require_safe_negotiation = true;
     };
     services.sync.engine.addons = {
-      _self = false;
-      ignoreDesktopClients = true;
+      _self = true;
+      ignoreDesktopClients = false;
     };
     signon = {
       rememberSignons = false;
@@ -286,95 +293,6 @@ in
       description = "Firefox package to use";
     };
 
-    additionalPreferences = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = ''
-        Additional Firefox preferences. Can be specified as nested attribute sets
-        which will be flattened to dot-notation. Use `_self` to set a value at a
-        level that also has nested attributes.
-      '';
-      example = lib.literalExpression ''
-        {
-          browser.tabs.closeWindowWithLastTab = false;
-          privacy.donottrackheader.enabled = true;
-          services.sync.engine = {
-            history = true;
-            bookmarks = {
-              _self = true;
-              ignoreDesktopClients = false;
-            };
-          };
-        }
-      '';
-    };
-
-    additionalPolicies = lib.mkOption {
-      type = lib.types.attrsOf lib.types.anything;
-      default = { };
-      description = "Additional Firefox policies";
-    };
-
-    profileName = lib.mkOption {
-      type = lib.types.str;
-      default = "default";
-      description = "Name of the Firefox profile";
-    };
-
-    bookmarks = lib.mkOption {
-      type = lib.types.anything;
-      default = null;
-      description = "Firefox bookmarks configuration (raw bookmark structure)";
-      example = lib.literalExpression ''
-        [
-          {
-            name = "Wikipedia";
-            url = "https://wikipedia.org";
-          }
-          {
-            name = "Development";
-            bookmarks = [
-              {
-                name = "GitHub";
-                url = "https://github.com";
-              }
-              {
-                name = "NixOS Search";
-                url = "https://search.nixos.org";
-              }
-            ];
-          }
-        ]
-      '';
-    };
-
-    additionalExtensions = lib.mkOption {
-      type = lib.types.listOf (
-        lib.types.submodule {
-          options = {
-            name = lib.mkOption {
-              type = lib.types.str;
-              description = "Extension name (as used in the URL)";
-              example = "youtube-nonstop";
-            };
-            id = lib.mkOption {
-              type = lib.types.str;
-              description = "Extension ID";
-              example = "{0d7cafdd-501c-49ca-8ebb-e3341caaa55e}";
-            };
-          };
-        }
-      );
-      default = [ ];
-      description = "Additional extensions to install";
-      example = [
-        {
-          name = "youtube-nonstop";
-          id = "{0d7cafdd-501c-49ca-8ebb-e3341caaa55e}";
-        }
-      ];
-    };
-
   };
 
   config = lib.mkIf cfg.enable {
@@ -384,49 +302,27 @@ in
 
     programs.gh.settings.browser = "firefox";
 
-    home.file.".mozilla/managed-storage/uBlock0@raymondhill.net.json".text = builtins.toJSON {
-      name = "uBlock0@raymondhill.net";
-      description = "ignored";
-      type = "storage";
-      data = {
-        adminSettings = builtins.toJSON {
-          userSettings = {
-            cloudStorageEnabled = true;
-          };
-        };
-      };
-    };
-
     programs.firefox = {
       enable = true;
       inherit (cfg) package;
       nativeMessagingHosts = with pkgs; [ kdePackages.plasma-browser-integration ];
 
-      policies = lib.mkMerge [
-        cfg.additionalPolicies
-        {
-          SearchEngines = {
-            Add = developerSearchEngines;
-            Remove = [
-              "Bing"
-              "eBay"
-            ];
-          };
-          ExtensionSettings = builtins.listToAttrs (
-            map (ext: mkExtension ext.name ext.id) (defaultExtensions ++ cfg.additionalExtensions)
-          );
-          DisableAppUpdate = true;
-        }
-      ];
+      policies = {
+        SearchEngines = {
+          Add = developerSearchEngines;
+          Remove = [
+            "Bing"
+            "eBay"
+          ];
+        };
+        ExtensionSettings = builtins.listToAttrs (map (ext: mkExtension ext.name ext.id) defaultExtensions);
+        DisableAppUpdate = true;
+      };
 
-      profiles.${cfg.profileName} = {
+      profiles.default = {
         isDefault = true;
-        settings = lib.mkMerge [
-          (flattenAttrs defaultPreferences)
-          (flattenAttrs cfg.additionalPreferences)
-        ];
-      }
-      // lib.optionalAttrs (cfg.bookmarks != null) { bookmarks = import cfg.bookmarks; };
+        settings = flattenAttrs defaultPreferences;
+      };
     };
   };
 }
