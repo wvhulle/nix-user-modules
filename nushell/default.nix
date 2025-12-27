@@ -7,135 +7,79 @@
 
 let
   cfg = config.programs.nushell-extended;
-
 in
 {
-
   options.programs.nushell-extended = {
     enable = lib.mkEnableOption "extended nushell configuration";
 
     shellAliases = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
-      default = {
-        ll = "${pkgs.eza}/bin/eza -la";
-      };
+      default = { };
       description = "Shell aliases for nushell";
     };
 
-    environmentVariables = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = {
-        LC_ALL = "en_US.UTF-8";
-        SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
-      };
-      description = "Environment variables to set in nushell env.nu";
-      example = {
-        PAGER = "less";
-      };
-    };
-
-    additionalPaths = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = "Additional paths to prepend to PATH in nushell";
-      example = [
-        "/home/user/.cargo/bin"
-        "/home/user/.local/bin"
-      ];
-    };
-
-    shellIntegrations = {
-      atuin = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Enable atuin shell history integration";
-        };
-        settings = lib.mkOption {
-          type = lib.types.attrsOf lib.types.anything;
-          default = {
-            sync_frequency = "5m";
-            network_timeout = 30;
-            network_connect_timeout = 5;
-            local_timeout = 5;
-          };
-          description = "Atuin configuration settings";
-        };
-      };
-
-      zoxide = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Enable zoxide directory jumping";
-        };
-      };
-
-      ohMyPosh = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Enable oh-my-posh prompt theme";
-        };
-        theme = lib.mkOption {
-          type = lib.types.str;
-          default = "peru";
-          description = "Oh-my-posh theme name";
-        };
-      };
+    ohMyPoshTheme = lib.mkOption {
+      type = lib.types.str;
+      default = "peru";
+      description = "Oh-my-posh theme name";
     };
   };
 
   config = lib.mkIf cfg.enable {
-
     programs = {
       nushell = {
         enable = true;
-
-        inherit (cfg) shellAliases;
+        shellAliases = {
+          ll = "${pkgs.eza}/bin/eza -la";
+        }
+        // cfg.shellAliases;
 
         settings = {
           show_banner = false;
-          rm = {
-            always_trash = true;
-          };
+          rm.always_trash = true;
         };
 
         extraEnv =
           let
-            allEnvVars = cfg.environmentVariables // config.home.sessionVariables;
-
-            envVarLines = lib.mapAttrsToList (name: value: ''$env.${name} = "${value}"'') allEnvVars;
-          in
-          lib.concatStringsSep "\n" envVarLines;
-
-        extraConfig =
-          let
+            envVars = {
+              LC_ALL = "en_US.UTF-8";
+              SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
+            }
+            // config.home.sessionVariables;
+            envVarLines = lib.mapAttrsToList (name: value: ''$env.${name} = "${value}"'') envVars;
             pathPrepend =
-              lib.optionalString (cfg.additionalPaths != [ ])
+              lib.optionalString (config.home.sessionPath != [ ])
                 "$env.PATH = ($env.PATH | prepend [${
-                  lib.concatMapStringsSep " " (p: ''"${p}"'') cfg.additionalPaths
+                  lib.concatMapStringsSep " " (p: ''"${p}"'') config.home.sessionPath
                 }])";
           in
-          pathPrepend + "\n" + builtins.readFile ./config.nu;
+          lib.concatStringsSep "\n" (envVarLines ++ [ pathPrepend ]);
+
+        extraConfig = builtins.readFile ./config.nu;
       };
 
-      atuin = lib.mkIf cfg.shellIntegrations.atuin.enable {
+      atuin = {
         enable = true;
         enableNushellIntegration = false;
-        inherit (cfg.shellIntegrations.atuin) settings;
+        enableBashIntegration = true;
+        settings = {
+          sync_frequency = "5m";
+          network_timeout = 30;
+          network_connect_timeout = 5;
+          local_timeout = 5;
+        };
       };
 
-      zoxide = lib.mkIf cfg.shellIntegrations.zoxide.enable {
+      zoxide = {
         enable = true;
         enableNushellIntegration = false;
         enableBashIntegration = true;
       };
 
-      oh-my-posh = lib.mkIf cfg.shellIntegrations.ohMyPosh.enable {
+      oh-my-posh = {
         enable = true;
         enableNushellIntegration = true;
-        useTheme = cfg.shellIntegrations.ohMyPosh.theme;
+        useTheme = cfg.ohMyPoshTheme;
       };
 
       carapace = {
@@ -143,10 +87,16 @@ in
         enableNushellIntegration = true;
       };
 
+      bash = {
+        enable = true;
+        enableCompletion = true;
+        # Source home-manager session vars in interactive shells (not just login shells)
+        initExtra = ''
+          . "${config.home.profileDirectory}/etc/profile.d/hm-session-vars.sh"
+        '';
+      };
     };
 
-    home.file.".local/share/atuin/init.nu" = lib.mkIf cfg.shellIntegrations.atuin.enable {
-      source = ./atuin-init.nu;
-    };
+    home.file.".local/share/atuin/init.nu".source = ./atuin-init.nu;
   };
 }

@@ -169,6 +169,10 @@ let
       fontSize = fontsCfg.sizes.terminal;
       smoothScrolling = true;
       defaultProfile.linux = "bash";
+      commandsToSkipShell = [
+        "-workbench.action.quickOpen" # Ctrl+R in some contexts
+      ];
+      sendKeybindingsToShell = true;
       profiles.linux = {
         fish = {
           path = "${pkgs.fish}/bin/fish";

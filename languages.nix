@@ -656,8 +656,6 @@ in
           };
         };
       };
-
-      nushell-extended.additionalPaths = allAdditionalPaths;
     };
 
     home = {
