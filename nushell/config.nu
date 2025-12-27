@@ -74,5 +74,5 @@ $env.config.hooks.env_change.PWD = (
 )
 $env.config.hooks.pre_prompt = (
   ($env.config.hooks.pre_prompt? | default [])
-  ++ [{|| refresh-theme; notify-long-command }]
+  ++ [{|| refresh-theme; notify-long-command; }]
 )
