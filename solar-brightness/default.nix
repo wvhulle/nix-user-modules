@@ -153,7 +153,7 @@ in
       Timer = {
         OnUnitActiveSec = cfg.interval-minutes;
         OnBootSec = cfg.interval-minutes;
-        Persistent = true;
+        Persistent = false;
       };
       Install = {
         WantedBy = [ "timers.target" ];
