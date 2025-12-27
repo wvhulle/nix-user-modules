@@ -114,9 +114,10 @@ in
         };
 
         kitty = {
-          dark = "catppuccin-mocha";
-          light = "catppuccin-latte";
+          dark = "dark Catppuccin-Mocha";
+          light = "light Catppuccin-Latte";
           script = ./kitty-theme.nu;
+          args = theme: lib.splitString " " theme;
         };
 
         claude-code = {
