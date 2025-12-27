@@ -2,7 +2,8 @@
 
 # Switch Claude Code theme
 export def main [
-  theme_name?: string
+  theme_name: string
+  mode?: string
 ] {
   if ($theme_name | is-empty) {
     print "Usage: claude-code-theme-nu <theme>"

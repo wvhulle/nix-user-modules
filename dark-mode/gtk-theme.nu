@@ -2,17 +2,8 @@
 
 # Switch GTK theme
 export def main [
-  theme_name?: string
-] {
-  if ($theme_name | is-empty) {
-    print "Usage: gtk-theme <theme>"
-  } else {
-    set-gtk-theme $theme_name
-  }
-}
-
-export def set-gtk-theme [
   theme_name: string
+  mode?: string
 ] {
   print $"Switching GTK to ($theme_name)"
 

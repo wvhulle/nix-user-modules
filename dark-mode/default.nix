@@ -6,7 +6,7 @@
 }:
 
 let
-  cfg = config.programs.dayNightTheme;
+  cfg = config.programs.darkMode;
 
   lightDarkApp = lib.types.submodule {
     options = {
@@ -22,21 +22,14 @@ let
         type = lib.types.path;
         description = "Path to the theme switching script";
       };
-      args = lib.mkOption {
-        type = lib.types.functionTo (lib.types.listOf lib.types.str);
-        description = "Function that takes theme name and returns args list";
-        default = theme: [ theme ];
-      };
     };
   };
 
   lightDarkAppSet = lib.types.attrsOf lightDarkApp;
 
   makeThemeScript =
-    name: app: theme:
+    name: app: mode: theme:
     let
-      args = app.args theme;
-      argStr = lib.concatStringsSep " " (map lib.escapeShellArg args);
       scriptPath = pkgs.lib.makeBinPath [
         pkgs.nushell
         pkgs.coreutils
@@ -49,20 +42,15 @@ let
         "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
       ];
     in
-    pkgs.writeShellScript "theme-${name}" ''
+    pkgs.writeShellScript "theme-${name}-${mode}" ''
       export PATH="${scriptPath}:$PATH"
       export XDG_DATA_DIRS="${xdgDataDirs}"
-      ${pkgs.nushell}/bin/nu ${app.script} ${argStr}
+      ${app.script} '${theme}' ${mode}
     '';
 
-  makeThemeBin =
-    name: script:
-    pkgs.writeShellScriptBin name ''
-      exec ${pkgs.nushell}/bin/nu ${script} "$@"
-    '';
 in
 {
-  options.programs.dayNightTheme = {
+  options.programs.darkMode = {
     enable = lib.mkEnableOption "automatic day/night theme switching with darkman";
 
     location = {
@@ -95,10 +83,9 @@ in
         };
 
         plasma = {
-          dark = "org.kde.breezedark.desktop BreezeDark";
-          light = "org.kde.breeze.desktop BreezeLight";
+          dark = "org.kde.breezedark.desktop";
+          light = "org.kde.breeze.desktop";
           script = ./plasma-theme.nu;
-          args = theme: lib.splitString " " theme;
         };
 
         konsole = {
@@ -114,10 +101,10 @@ in
         };
 
         kitty = {
-          dark = "dark Catppuccin-Mocha";
-          light = "light Catppuccin-Latte";
+          # Use underscores for spaces
+          dark = "GitHub_Dark";
+          light = "GitHub_Light";
           script = ./kitty-theme.nu;
-          args = theme: lib.splitString " " theme;
         };
 
         claude-code = {
@@ -129,23 +116,6 @@ in
       description = "Applications with dark/light theme support";
     };
 
-    extraDarkModeScripts = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = { };
-      description = "Additional scripts to run when switching to dark mode";
-      example = {
-        custom-app = "/path/to/custom-dark-script.sh";
-      };
-    };
-
-    extraLightModeScripts = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = { };
-      description = "Additional scripts to run when switching to light mode";
-      example = {
-        custom-app = "/path/to/custom-light-script.sh";
-      };
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -164,8 +134,7 @@ in
         ];
         startupNotify = false;
       })
-    ]
-    ++ (lib.mapAttrsToList (name: app: makeThemeBin "${name}-theme" app.script) cfg.apps);
+    ];
 
     services.darkman = {
       enable = true;
@@ -177,19 +146,8 @@ in
         portal = true;
       };
 
-      darkModeScripts = lib.mkMerge [
-        (lib.mapAttrs' (
-          name: app: lib.nameValuePair "${name}-theme" (makeThemeScript name app app.dark)
-        ) cfg.apps)
-        cfg.extraDarkModeScripts
-      ];
-
-      lightModeScripts = lib.mkMerge [
-        (lib.mapAttrs' (
-          name: app: lib.nameValuePair "${name}-theme" (makeThemeScript name app app.light)
-        ) cfg.apps)
-        cfg.extraLightModeScripts
-      ];
+      darkModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "dark" app.dark) cfg.apps;
+      lightModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "light" app.light) cfg.apps;
     };
   };
 }

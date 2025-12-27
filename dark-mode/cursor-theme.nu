@@ -2,17 +2,8 @@
 
 # Switch cursor theme
 export def main [
-  theme_name?: string
-] {
-  if ($theme_name | is-empty) {
-    print "Usage: cursor-theme <theme>"
-  } else {
-    set-cursor-theme $theme_name
-  }
-}
-
-export def set-cursor-theme [
   theme_name: string
+  mode?: string
 ] {
   print $"Switching cursor to ($theme_name)"
 

@@ -3,23 +3,8 @@
 # Switch Kitty theme using auto theme files
 # Kitty automatically detects OS color scheme and loads the appropriate theme
 export def main [
-  mode?: string
-  theme_name?: string
-] {
-  if ($mode | is-empty) {
-    print "Usage: kitty-theme-nu <mode> <theme>"
-    print "Example: kitty-theme-nu dark Catppuccin-Mocha"
-  } else if ($theme_name | is-empty) {
-    print "Usage: kitty-theme-nu <mode> <theme>"
-    print "Example: kitty-theme-nu dark Catppuccin-Mocha"
-  } else {
-    set-kitty-theme $mode $theme_name
-  }
-}
-
-export def set-kitty-theme [
-  mode: string
   theme_name: string
+  mode: string
 ] {
   print $"Switching Kitty to ($mode) theme: ($theme_name)"
 

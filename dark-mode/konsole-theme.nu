@@ -1,19 +1,9 @@
+#!/usr/bin/env nu
+
 # Switch Konsole profile for all running instances
 export def main [
-  profile_name?: string
-] {
-  if ($profile_name | is-empty) {
-    print "Usage: konsole-theme-nu <profile>"
-    print "Available commands:"
-    print "  list-konsole-profiles"
-    print "  get-konsole-profile"
-  } else {
-    set-konsole-profile $profile_name
-  }
-}
-
-export def set-konsole-profile [
   profile_name: string
+  mode?: string
 ] {
   print $"Switching Konsole to profile: ($profile_name)"
 

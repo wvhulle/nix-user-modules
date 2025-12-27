@@ -25,7 +25,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "carbon";
+        theme = "ao";
 
         editor = {
           completion-replace = true;
