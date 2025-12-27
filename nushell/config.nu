@@ -2,6 +2,15 @@ const INTERACTIVE_COMMANDS = ["top" "htop" "btop" "watch" "vim" "nvim" "nano" "l
 const NOTIFICATION_THRESHOLD = 10sec
 const SOUNDS_DIR = "/run/current-system/sw/share/sounds/freedesktop/stereo"
 
+def set-terminal-title [] {
+  # Set terminal title via kitty remote control, bypassing zellij's title interception
+  let dir_name = $env.PWD | path basename
+  # Use kitty @ to set title directly if KITTY_LISTEN_ON is set
+  if ($env.KITTY_LISTEN_ON? | is-not-empty) {
+    try { kitty @ set-window-title $dir_name } catch { }
+  }
+}
+
 export def notify-long-command [] {
   if ($env.DISABLE_COMMAND_NOTIFICATIONS? | default false) { return }
 
@@ -74,5 +83,5 @@ $env.config.hooks.env_change.PWD = (
 )
 $env.config.hooks.pre_prompt = (
   ($env.config.hooks.pre_prompt? | default [])
-  ++ [{|| refresh-theme; notify-long-command; }]
+  ++ [{|| set-terminal-title; refresh-theme; notify-long-command; }]
 )
