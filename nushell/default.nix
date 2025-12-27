@@ -17,12 +17,6 @@ in
       default = { };
       description = "Shell aliases for nushell";
     };
-
-    ohMyPoshTheme = lib.mkOption {
-      type = lib.types.str;
-      default = "peru";
-      description = "Oh-my-posh theme name";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -57,46 +51,6 @@ in
 
         extraConfig = builtins.readFile ./config.nu;
       };
-
-      atuin = {
-        enable = true;
-        enableNushellIntegration = false;
-        enableBashIntegration = true;
-        settings = {
-          sync_frequency = "5m";
-          network_timeout = 30;
-          network_connect_timeout = 5;
-          local_timeout = 5;
-        };
-      };
-
-      zoxide = {
-        enable = true;
-        enableNushellIntegration = false;
-        enableBashIntegration = true;
-      };
-
-      oh-my-posh = {
-        enable = true;
-        enableNushellIntegration = true;
-        useTheme = cfg.ohMyPoshTheme;
-      };
-
-      carapace = {
-        enable = true;
-        enableNushellIntegration = true;
-      };
-
-      bash = {
-        enable = true;
-        enableCompletion = true;
-        # Source home-manager session vars in interactive shells (not just login shells)
-        initExtra = ''
-          . "${config.home.profileDirectory}/etc/profile.d/hm-session-vars.sh"
-        '';
-      };
     };
-
-    home.file.".local/share/atuin/init.nu".source = ./atuin-init.nu;
   };
 }
