@@ -225,8 +225,5 @@ in
       };
     };
 
-    programs.vscode-extended = lib.mkIf cfg.watchers.vscode {
-      additionalExtensions = [ pkgs.vscode-marketplace.activitywatch.aw-watcher-vscode ];
-    };
   };
 }

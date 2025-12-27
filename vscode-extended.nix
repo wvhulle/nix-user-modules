@@ -20,7 +20,23 @@ let
       "**/*.${builtins.head extensions}"
     else
       "**/*.{${lib.concatStringsSep "," extensions}}";
+  mkMarketplaceExt =
+    {
+      name,
+      publisher,
+      version,
+      sha256,
+    }:
+    pkgs.vscode-utils.extensionFromVscodeMarketplace {
+      inherit
+        name
+        publisher
+        version
+        sha256
+        ;
+    };
 
+  mkMarketplaceExts = extensions: map mkMarketplaceExt extensions;
   # Flatten nested attrsets to VSCode dot-notation settings
   # e.g., { editor.fontSize = 14; } -> { "editor.fontSize" = 14; }
   # Language overrides like "[nix]" preserve their bracket key but flatten inner contents
@@ -63,20 +79,46 @@ let
     in
     go "";
 
-  defaultMarketplaceExtensions = with pkgs.vscode-marketplace; [
-    ast-grep.ast-grep-vscode
-
-    constneo.vscode-nushell-format
-
-    anthropic.claude-code
-    ms-vscode.vscode-websearchforcopilot
-    willemvanhulle.nu-lint
-    ziyasal.vscode-open-in-github
+  # Extensions not available in pkgs.vscode-extensions
+  defaultMarketplaceExtensions = mkMarketplaceExts [
+    {
+      publisher = "ast-grep";
+      name = "ast-grep-vscode";
+      version = "0.1.18";
+      sha256 = "sha256-zZ1B5Q5cdfJxbz7uRRyWP8eUZW24Gsezqi+Lx03eioo=";
+    }
+    {
+      publisher = "constneo";
+      name = "vscode-nushell-format";
+      version = "0.1.9";
+      sha256 = "sha256-L6VV5aY7NYDsMyQIBvWf9ifczJtFSzQk+D5mDfIJKDM=";
+    }
+    {
+      publisher = "ms-vscode";
+      name = "vscode-websearchforcopilot";
+      version = "0.2.2025121801";
+      sha256 = "sha256-oZKpXo1YTUh0JnAS5yqVQZzyrNsXkXiHTDm+VxTWG5U=";
+    }
+    {
+      publisher = "willemvanhulle";
+      name = "nu-lint";
+      version = "0.0.13";
+      sha256 = "sha256-76KK85Jd34U9VG+0RKImoEblcr7z1vqje2LdhbdSs/g=";
+    }
+    {
+      publisher = "activitywatch";
+      name = "aw-watcher-vscode";
+      version = "0.5.0";
+      sha256 = "sha256-OrdIhgNXpEbLXYVJAx/jpt2c6Qa5jf8FNxqrbu5FfFs=";
+    }
   ];
 
   defaultNixpkgsExtensions = with pkgs.vscode-extensions; [
 
     quicktype.quicktype
+
+    # Previously from marketplace, now available in nixpkgs:
+    anthropic.claude-code
 
     alefragnani.project-manager
     codezombiech.gitignore
