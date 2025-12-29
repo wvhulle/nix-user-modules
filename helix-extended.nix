@@ -65,6 +65,7 @@ in
 
           shell = [
             "nu"
+            "--login"
             "-c"
           ];
 

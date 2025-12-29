@@ -8,20 +8,25 @@
 let
   cfg = config.programs.keyboard-action;
 
-  # Create a wrapper script for a specific key combination
+  normalizeKeyName =
+    key:
+    let
+      upper = lib.toUpper key;
+    in
+    if lib.hasPrefix "KEY_" upper then upper else "KEY_${upper}";
+
+  formatModifierArgs = lib.concatMapStringsSep " " (m: ''"${normalizeKeyName m}"'');
+
   makeKeyboardMonitor =
     name: actionCfg:
-    let
-      # Build modifier arguments like "meta:KEY_LEFTMETA:125"
-      modifierArgs = lib.filter (key: key.name != actionCfg.triggerKey.name) actionCfg.keys;
-      modifierSpecs = map (key: "${key.name}:${key.eventName}:${toString key.code}") modifierArgs;
-    in
-    pkgs.writeShellScriptBin "keyboard-action-${name}" ''
-      ${./keyboard-action-monitor.nu} \
-        "${actionCfg.triggerKey.eventName}" \
-        ${lib.concatStringsSep " \\\n        " (map lib.escapeShellArg modifierSpecs)} \
-        --action "${actionCfg.action}" \
-        --description "${actionCfg.keyDescription}"
+    pkgs.writers.writeNuBin "keyboard-action-${name}" ''
+      (nu ${./keyboard-action-monitor.nu}
+        "${normalizeKeyName actionCfg.triggerKey}"
+        ${formatModifierArgs actionCfg.modifiers}
+        --action "${actionCfg.action}"
+        ${
+          lib.optionalString (actionCfg.description != null) ''--description "${actionCfg.description}"''
+        })
     '';
 
   # Generate systemd services for all configured actions
@@ -32,7 +37,7 @@ let
     in
     lib.nameValuePair "keyboard-action-${name}" {
       Unit = {
-        Description = "Monitor ${actionCfg.keyDescription} and run action";
+        Description = "Monitor ${name} and run action";
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
       };
@@ -86,49 +91,25 @@ in
       type = lib.types.attrsOf (
         lib.types.submodule {
           options = {
-            keys = lib.mkOption {
-              type = lib.types.listOf (
-                lib.types.submodule {
-                  options = {
-                    name = lib.mkOption {
-                      type = lib.types.str;
-                      description = "Variable name for this key (e.g., 'meta', 'shift', 'f23')";
-                      example = "meta";
-                    };
-                    eventName = lib.mkOption {
-                      type = lib.types.str;
-                      description = "Linux event name (e.g., 'KEY_LEFTMETA', 'KEY_F23')";
-                      example = "KEY_LEFTMETA";
-                    };
-                    code = lib.mkOption {
-                      type = lib.types.int;
-                      description = "Linux input event code";
-                      example = 125;
-                    };
-                  };
-                }
-              );
-              description = "List of all keys involved (including modifiers and trigger key)";
+            modifiers = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              description = "Modifier key names (case-insensitive, KEY_ prefix optional)";
+              example = [
+                "leftmeta"
+                "leftshift"
+              ];
             };
 
             triggerKey = lib.mkOption {
-              type = lib.types.submodule {
-                options = {
-                  name = lib.mkOption {
-                    type = lib.types.str;
-                    description = "Variable name for the trigger key (must match one from keys list)";
-                  };
-                  eventName = lib.mkOption {
-                    type = lib.types.str;
-                    description = "Linux event name for the trigger key";
-                  };
-                };
-              };
-              description = "The key whose release triggers the action";
+              type = lib.types.str;
+              description = "Trigger key name (case-insensitive, KEY_ prefix optional)";
+              example = "f23";
             };
 
-            keyDescription = lib.mkOption {
-              type = lib.types.str;
+            description = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
               description = "Human-readable description of the key combination";
               example = "Meta+Shift+F23";
             };

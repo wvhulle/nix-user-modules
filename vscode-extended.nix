@@ -15,11 +15,11 @@ let
   generateLanguagePattern =
     extensions:
     if builtins.length extensions == 0 then
-      "**/*"
+      "**"
     else if builtins.length extensions == 1 then
-      "**/*.${builtins.head extensions}"
+      "*.${builtins.head extensions}"
     else
-      "**/*.{${lib.concatStringsSep "," extensions}}";
+      "*.{${lib.concatStringsSep "," extensions}}";
   mkMarketplaceExt =
     {
       name,

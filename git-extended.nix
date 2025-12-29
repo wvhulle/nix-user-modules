@@ -161,7 +161,7 @@ in
           pull.rebase = true;
 
           core = {
-            editor = "${cfg.defaultEditor}/bin/${cfg.defaultEditor.pname or cfg.defaultEditor.name}";
+            editor = lib.getExe cfg.defaultEditor;
           };
 
           diff = {
