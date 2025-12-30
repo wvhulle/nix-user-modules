@@ -23,6 +23,25 @@ let
   };
 
   presets = {
+
+    plex = {
+      terminal = {
+        name = "BlexMono Nerd Font";
+        package = pkgs.nerd-fonts.im-writing;
+      };
+      editor = {
+        name = "IBM Plex Mono";
+        package = pkgs.ibm-plex;
+      };
+      ui = {
+        name = "IBM Plex Sans";
+        package = pkgs.ibm-plex;
+      };
+      serif = {
+        name = "IBM Plex Serif";
+        package = pkgs.ibm-plex;
+      };
+    };
     fira = {
       terminal = {
         name = "FiraCode Nerd Font Mono";
@@ -183,7 +202,7 @@ in
 
     preset = lib.mkOption {
       type = lib.types.enum (builtins.attrNames presets);
-      default = "fira";
+      default = "plex";
       description = ''
         Font preset to use. Available presets:
         - fira: FiraCode + Fira Sans (default)

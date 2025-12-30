@@ -102,6 +102,16 @@ in
             ];
             env = { };
           };
+
+          # Not trusted yet
+          # blender = {
+          #   package = pkgs.uv;
+          #   command = "uvx";
+          #   "args" = [
+          #     "blender-mcp"
+
+          #   ];
+          # };
         };
 
       description = "Attribute set of MCP servers to configure";

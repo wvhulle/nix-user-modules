@@ -6,7 +6,16 @@
 def main [
   --mcp-config: string # JSON string containing MCP configuration
 ]: nothing -> nothing {
-  let json_path = $env.HOME | path join '.claude.json'
+  let mcp_config = if $mcp_config == null {
+    error make {
+      msg: "--mcp-config is required"
+      help: "Pass a JSON string with mcpServers configuration: --mcp-config '{\"mcpServers\": {...}}'"
+    }
+  } else {
+    $mcp_config
+  }
+
+  let json_path = $env.HOME | path join .claude.json
 
   ensure-config-exists $json_path
 
@@ -15,7 +24,12 @@ def main [
   let existing_servers = $existing_config | get mcpServers | default {}
 
   if (has-changes $new_servers $existing_servers) {
-    update-and-report $json_path $existing_config $existing_servers $new_servers
+    {
+      json_path: $json_path
+      existing_config: $existing_config
+      existing_servers: $existing_servers
+      new_servers: $new_servers
+    } | update-and-report
   } else {
     print $"<notice>MCP servers already up to date in ($json_path)"
   }
@@ -34,45 +48,50 @@ def has-changes [
   new_servers: record
   existing_servers: record
 ]: nothing -> bool {
-  $new_servers
-  | items {|name config|
-    let existing = $existing_servers | get -o $name
-    $existing == null or $existing != $config
-  }
-  | any {|x| $x }
+  let has_updates = $new_servers
+    | items {|name config|
+      let existing = $existing_servers | get -o $name
+      $existing == null or $existing != $config
+    }
+    | any {|x| $x }
+
+  let has_removals = $existing_servers
+    | columns
+    | any {|name| ($new_servers | get -o $name) == null }
+
+  $has_updates or $has_removals
 }
 
 # Update configuration and report changes
-def update-and-report [
-  json_path: path
-  existing_config: record
-  existing_servers: record
-  new_servers: record
-]: nothing -> nothing {
-  let merged_servers = $existing_servers | merge $new_servers
-
-  $existing_config
-  | upsert mcpServers $merged_servers
+def update-and-report []: record -> nothing {
+  let ctx = $in
+  # Replace entirely with new servers (removes servers not in new config)
+  $ctx.existing_config
+  | upsert mcpServers $ctx.new_servers
   | to json
-  | save --force $json_path
+  | save --force $ctx.json_path
 
-  print $"<info>Updated user-scoped MCP servers in ($json_path)"
+  print $"<info>Updated user-scoped MCP servers in ($ctx.json_path)"
 
-  report-changes $existing_servers $new_servers
+  report-changes $ctx.existing_servers $ctx.new_servers
 }
 
-# Report what was added or updated
+# Report what was added, updated, or removed
 def report-changes [
   existing_servers: record
   new_servers: record
 ]: nothing -> nothing {
-  $new_servers
-  | items {|name _config|
-    if ($existing_servers | get -o $name) == null {
-      $"<info>  - Added: ($name)"
+  # Report added or updated servers
+  for entry in ($new_servers | items {|name config| {name: $name config: $config} }) {
+    if ($existing_servers | get -o $entry.name) == null {
+      print $"<info>  - Added: ($entry.name)"
     } else {
-      $"<info>  - Updated: ($name)"
+      print $"<info>  - Updated: ($entry.name)"
     }
   }
-  | each {|msg| print $msg }
+
+  # Report removed servers
+  for name in ($existing_servers | columns | where {|n| ($new_servers | get -o $n) == null }) {
+    print $"<info>  - Removed: ($name)"
+  }
 }

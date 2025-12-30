@@ -19,7 +19,8 @@ let
         description = "Theme name for light mode";
       };
       script = lib.mkOption {
-        type = lib.types.path;
+        type = lib.types.nullOr lib.types.path;
+        default = null;
         description = "Path to the theme switching script";
       };
     };
@@ -42,11 +43,16 @@ let
         "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
       ];
     in
-    pkgs.writeShellScript "theme-${name}-${mode}" ''
-      export PATH="${scriptPath}:$PATH"
-      export XDG_DATA_DIRS="${xdgDataDirs}"
-      ${app.script} '${theme}' ${mode}
-    '';
+    pkgs.writeShellScript "theme-${name}-${mode}" (
+      if !builtins.isNull app.script then
+        ''
+          export PATH="${scriptPath}:$PATH"
+          export XDG_DATA_DIRS="${xdgDataDirs}"
+          ${app.script} '${theme}' ${mode}
+        ''
+      else
+        ""
+    );
 
 in
 {
@@ -105,6 +111,11 @@ in
           dark = "GitHub_Dark";
           light = "GitHub_Light";
           script = ./kitty-theme.nu;
+        };
+
+        helix = {
+          dark = "ao";
+          light = "catppuccin_latte";
         };
 
         claude-code = {
