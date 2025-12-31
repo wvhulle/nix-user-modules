@@ -226,6 +226,15 @@ let
       };
       linter.package = pkgs.nu-lint;
       servers = {
+
+        nu = {
+          package = pkgs.nushell;
+          command = "nu";
+          args = [
+            "--lsp"
+            "--no-config-file"
+          ];
+        };
         nu-lint = {
           package = pkgs.nu-lint;
           args = [ "--lsp" ];

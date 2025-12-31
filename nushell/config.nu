@@ -66,8 +66,10 @@ def --env zoxide-zi [...rest: string] {
 alias z = zoxide-z
 alias zi = zoxide-zi
 
-# Atuin nushell integration
-$env.ATUIN_SESSION = (atuin uuid)
+# Atuin nushell integration (skip in non-interactive mode like LSP)
+if $nu.is-interactive and (which atuin | is-not-empty) {
+  $env.ATUIN_SESSION = (atuin uuid)
+}
 hide-env --ignore-errors ATUIN_HISTORY_ID
 
 let keybinding_token = $"# (random uuid)"
