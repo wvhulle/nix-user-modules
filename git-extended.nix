@@ -68,11 +68,6 @@ in
       };
     };
 
-    enableMergiraf = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Whether to enable mergiraf as the default merge strategy";
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -217,7 +212,7 @@ in
             tool = "meld";
             mergiraf = {
               name = "mergiraf";
-              driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L";
+              driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L --compact";
             };
           };
 

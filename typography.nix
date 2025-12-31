@@ -26,8 +26,8 @@ let
 
     plex = {
       terminal = {
-        name = "BlexMono Nerd Font";
-        package = pkgs.nerd-fonts.im-writing;
+        name = "BlexMono Nerd Font Mono";
+        package = pkgs.nerd-fonts.blex-mono;
       };
       editor = {
         name = "IBM Plex Mono";
@@ -203,16 +203,6 @@ in
     preset = lib.mkOption {
       type = lib.types.enum (builtins.attrNames presets);
       default = "plex";
-      description = ''
-        Font preset to use. Available presets:
-        - fira: FiraCode + Fira Sans (default)
-        - jetbrains: JetBrains Mono + Inter
-        - hack: Hack + Roboto
-        - iosevka: Iosevka family
-        - monaspace: GitHub Monaspace + Inter
-        - cascadia: Cascadia Code (Windows Terminal font)
-        - sourcecodepro: Adobe Source family
-      '';
     };
 
     overrides = lib.mkOption {
@@ -311,12 +301,15 @@ in
   config = lib.mkIf cfg.enable {
     home.packages = cfg.packages;
 
-    fonts.fontconfig = {
-      enable = true;
-      defaultFonts = {
-        monospace = [ cfg.terminal.name ];
-        sansSerif = [ cfg.ui.name ];
-        serif = [ cfg.serif.name ];
+    fonts = {
+      # force = true;
+      fontconfig = {
+        enable = true;
+        defaultFonts = {
+          monospace = [ cfg.terminal.name ];
+          sansSerif = [ cfg.ui.name ];
+          serif = [ cfg.serif.name ];
+        };
       };
     };
 

@@ -195,8 +195,8 @@ let
 
     workbench = {
       list.smoothScrolling = true;
-      preferredDarkColorTheme = "GitHub Dark";
-      preferredLightColorTheme = "GitHub Light";
+      preferredDarkColorTheme = "GitHub Dark Default";
+      preferredLightColorTheme = "GitHub Light Default";
       editor = {
         enablePreview = false;
         highlightModifiedTabs = true;

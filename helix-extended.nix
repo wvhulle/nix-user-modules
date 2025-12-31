@@ -25,7 +25,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "ao";
+        theme = "everblush";
 
         editor = {
           completion-replace = true;

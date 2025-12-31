@@ -107,6 +107,7 @@ in
         };
 
         kitty = {
+          # This is what determines the color of the terminal background
           # Use underscores for spaces
           dark = "GitHub_Dark";
           light = "GitHub_Light";
@@ -114,8 +115,8 @@ in
         };
 
         helix = {
-          dark = "ao";
-          light = "catppuccin_latte";
+          dark = "everblush";
+          light = "eiffel";
         };
 
         claude-code = {
