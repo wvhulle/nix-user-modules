@@ -118,6 +118,25 @@ let
       };
     };
 
+    lilex = {
+      terminal = {
+        name = "Lilex Regular";
+        package = pkgs.lilex;
+      };
+      editor = {
+        name = "IBM Plex Mono";
+        package = pkgs.lilex;
+      };
+      ui = {
+        name = "IBM Plex Sans";
+        package = pkgs.ibm-plex;
+      };
+      serif = {
+        name = "IBM Plex Serif";
+        package = pkgs.ibm-plex;
+      };
+    };
+
     monaspace = {
       terminal = {
         name = "Monaspace Neon";
