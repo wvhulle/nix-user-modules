@@ -120,11 +120,11 @@ let
 
     lilex = {
       terminal = {
-        name = "Lilex Regular";
+        name = "Lilex Medium";
         package = pkgs.lilex;
       };
       editor = {
-        name = "IBM Plex Mono";
+        name = "Lilex Medium";
         package = pkgs.lilex;
       };
       ui = {
@@ -209,9 +209,6 @@ let
       ]
     );
 
-  mkFontFamilyString =
-    primary: fallbacks:
-    lib.concatStringsSep ", " (map (f: "'${f}'") ([ primary ] ++ fallbacks ++ [ "monospace" ]));
 in
 {
   options.programs.typography = {
@@ -289,27 +286,6 @@ in
       description = "Serif font (documents, reading)";
     };
 
-    terminalFontFamily = lib.mkOption {
-      type = lib.types.str;
-      default = mkFontFamilyString cfg.terminal.name [ cfg.editor.name ];
-      defaultText = lib.literalExpression "'terminal', 'editor', monospace";
-      description = "CSS-style font-family string for terminals with fallbacks";
-    };
-
-    editorFontFamily = lib.mkOption {
-      type = lib.types.str;
-      default = mkFontFamilyString cfg.editor.name [ cfg.terminal.name ];
-      defaultText = lib.literalExpression "'editor', 'terminal', monospace";
-      description = "CSS-style font-family string for editors with fallbacks";
-    };
-
-    packages = lib.mkOption {
-      type = lib.types.listOf lib.types.package;
-      default = collectPackages cfg ++ [ pkgs.font-awesome ];
-      defaultText = lib.literalExpression "[ terminal.package editor.package ui.package serif.package font-awesome ]";
-      description = "Font packages to install";
-    };
-
     plasma.enable = lib.mkOption {
       type = lib.types.bool;
       default = config.programs.plasma.enable or false;
@@ -318,17 +294,14 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = cfg.packages;
+    home.packages = collectPackages cfg;
 
-    fonts = {
-      # force = true;
-      fontconfig = {
-        enable = true;
-        defaultFonts = {
-          monospace = [ cfg.terminal.name ];
-          sansSerif = [ cfg.ui.name ];
-          serif = [ cfg.serif.name ];
-        };
+    fonts.fontconfig = {
+      enable = true;
+      defaultFonts = {
+        monospace = [ cfg.terminal.name ];
+        sansSerif = [ cfg.ui.name ];
+        serif = [ cfg.serif.name ];
       };
     };
 
