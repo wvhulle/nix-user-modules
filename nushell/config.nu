@@ -1,10 +1,12 @@
 # Nushell core configuration
 
 # Setup PATH before loading scripts
-$env.PATH = ($env.PATH | prepend [
-  ($env.HOME | path join '.nix-profile' 'bin')
-  '/run/current-system/sw/bin'
-])
+$env.PATH = (
+  $env.PATH | prepend [
+    ($env.HOME | path join '.nix-profile' 'bin')
+    '/run/current-system/sw/bin'
+  ]
+)
 
 # Environment variables
 $env.LC_ALL = "en_US.UTF-8"
