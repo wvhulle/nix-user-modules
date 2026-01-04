@@ -1,45 +1,29 @@
-# User Modules
+# Home Manager Modules
 
-The [home-manager](https://github.com/nix-community/home-manager) project allows Linux (but also Mac) users to declare application-specific configuration using [Nix](https://github.com/nix-community), a language (and ecosystem) that extends JSON with functions.
+This repository defines a set of configuration modules that can be used to manage common Linux desktop applications and tools declaratively. I use most of the modules in this repository on a daily basis and fix bugs whenever I encounter them.
 
-The files in this directory are custom [home-manager](https://github.com/nix-community/home-manager) modules for declarative user configuration.
+You need to have [home-manager](https://github.com/nix-community/home-manager) installed.
 
 ## Usage
 
-To use these custom user modules in your NixOS configuration, import them directly from the GitHub repository:
+Add to your flake inputs:
 
 ```nix
-{ config, pkgs, ... }:
-{
-    imports = [
-        (builtins.fetchGit {
-            url = "https://github.com/wvhulle/nix-user-modules.git";
-            rev = "main";
-        } + "/vscode-extended.nix")
-    ];
-
-    programs.vscode-extended.enable = true;
-}
+inputs.user-modules.url = "github:wvhulle/nix-user-modules";
 ```
 
-Or use `fetchTarball` for a more stable approach:
+Import specific modules:
 
 ```nix
-{ config, pkgs, ... }:
-let
-    userModules = builtins.fetchTarball {
-        url = "https://github.com/wvhulle/nix-user-modules/archive/main.tar.gz";
-    };
-in
-{
-    imports = [
-        "${userModules}/vscode-extended.nix"
-    ];
+imports = [ inputs.user-modules.homeManagerModules.vscode-extended ];
 
-    programs.vscode-extended.enable = true;
-}
+programs.vscode-extended.enable = true;
 ```
 
-Then run `home-manager switch` to write settings declaratively to your home directory.
+Or import all modules:
 
-(All files will be symlinks to read-only paths in the Nix store, except for VS Code settings.)
+```nix
+imports = [ inputs.user-modules.homeManagerModules.default ];
+```
+
+See [Nix flakes](https://nixos.wiki/wiki/Flakes) and [home-manager](https://nix-community.github.io/home-manager) documentation.
