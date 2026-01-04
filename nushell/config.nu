@@ -20,8 +20,8 @@ alias system-switch = sudo nixos-rebuild switch --flake ~/.config/nixos#x1
 $env.config.hooks.command_not_found = {|cmd| command-not-found $cmd }
 
 # Load integrations from scripts directory
-use scripts/direnv.nu *
-use scripts/kitty.nu *
-use scripts/navi.nu *
-use scripts/notifications.nu *
-use scripts/theme.nu *
+use scripts/direnv.nu
+use scripts/kitty.nu
+use scripts/navi.nu
+use scripts/notifications.nu
+use scripts/theme.nu
