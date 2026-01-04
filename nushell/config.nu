@@ -2,7 +2,6 @@
 
 # Environment variables
 $env.LC_ALL = "en_US.UTF-8"
-$env.SSH_AUTH_SOCK = $"($env.XDG_RUNTIME_DIR)/ssh-agent"
 $env.NU_PLUGIN_DIRS = [($env.HOME | path join '.cargo' 'bin')]
 $env.LD_LIBRARY_PATH = $"($env.LD_LIBRARY_PATH? | default ''):/run/current-system/sw/lib"
 
