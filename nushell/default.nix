@@ -1,46 +1,37 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
 let
   cfg = config.programs.nushell-extended;
+  scriptsDir = ./scripts;
 in
 {
   options.programs.nushell-extended = {
     enable = lib.mkEnableOption "extended nushell configuration";
-
-    shellAliases = lib.mkOption {
-      type = lib.types.attrsOf lib.types.str;
-      default = { };
-      description = "Shell aliases for nushell";
-    };
   };
 
   config = lib.mkIf cfg.enable {
+    xdg.configFile = {
+      "nushell/scripts" = {
+        source = scriptsDir;
+        recursive = true;
+      };
+    };
+
     programs = {
       nushell = {
         enable = true;
-        shellAliases = {
-          ll = "${pkgs.eza}/bin/eza -la";
-        }
-        // cfg.shellAliases;
 
-        settings = {
-          show_banner = false;
-          rm.always_trash = true;
-        };
+        configFile.source = ./config.nu;
 
         extraEnv =
           let
-            envVars = {
-              LC_ALL = "en_US.UTF-8";
-              SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/ssh-agent";
-            }
-            // config.home.sessionVariables;
-            envVarLines = lib.mapAttrsToList (name: value: ''$env.${name} = "${value}"'') envVars;
+            envVarLines = lib.mapAttrsToList (
+              name: value: ''$env.${name} = "${value}"''
+            ) config.home.sessionVariables;
             pathPrepend =
               lib.optionalString (config.home.sessionPath != [ ])
                 "$env.PATH = ($env.PATH | prepend [${
@@ -48,8 +39,6 @@ in
                 }])";
           in
           lib.concatStringsSep "\n" (envVarLines ++ [ pathPrepend ]);
-
-        extraConfig = builtins.readFile ./config.nu;
       };
     };
   };

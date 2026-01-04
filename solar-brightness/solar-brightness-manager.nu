@@ -5,7 +5,10 @@
 
 use std assert
 
-const PI = 3.14159265359
+use std/math [ PI ]
+
+use std/math
+
 const SERVICE_NAME = "solar-brightness.service"
 const TIMER_NAME = "solar-brightness.timer"
 
@@ -24,7 +27,7 @@ def parse-ddc-displays [output: string]: nothing -> list {
       }
       $current_display = ($line | parse "Display {num}" | get num.0 | into int)
       $current_model = null
-    } else if ($line | str contains "Model:") {
+    } else if $line =~ "Model:" {
       $current_model = ($line | str replace "Model:" "" | str trim)
     }
   }
@@ -42,13 +45,13 @@ def detect-ddcci-backends []: nothing -> list<record> {
   let result = ddcutil detect | complete
   if $result.exit_code != 0 {
     if ($result.stderr | str trim) != "" {
-      print -e $"<warning>ddcutil detect failed: ($result.stderr | str trim)"
+      error make {msg: $"<warning>ddcutil detect failed: ($result.stderr | str trim)"}
     }
     return []
   }
 
   parse-ddc-displays $result.stdout | each {|display|
-    {name: $"DDC/CI ($display.model)" type: "ddcci" display: $display.display}
+    {name: $"DDC/CI ($display.model)" type: ddcci display: $display.display}
   }
 }
 
@@ -57,7 +60,7 @@ def detect-kde-backend []: nothing -> list<record> {
   let result = qdbus org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement/Actions/BrightnessControl brightness | complete
   if $result.exit_code == 0 {
     [
-      {name: "KDE PowerManagement" type: "kde"}
+      {name: "KDE PowerManagement" type: kde}
     ]
   } else {
     []
@@ -70,7 +73,7 @@ def detect-backlight-backends []: nothing -> list<record> {
   if not ($backlight_path | path exists) { return [] }
 
   ls $backlight_path | get name | each {|device|
-    {name: $"Backlight ($device | path basename)" type: "backlight" device: $device}
+    {name: $"Backlight ($device | path basename)" type: backlight device: $device}
   }
 }
 
@@ -159,7 +162,7 @@ def time-to-hours []: string -> float {
 
 # Calculate smooth transition progress using cosine interpolation
 def smooth-step [progress: float]: nothing -> float {
-  (1.0 - (($progress * $PI) | math cos)) / 2.0
+  (1.0 - (($progress * $PI) | $math.cos)) / 2.0
 }
 
 # Calculate brightness based on solar position

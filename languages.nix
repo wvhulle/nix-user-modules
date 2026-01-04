@@ -222,6 +222,7 @@ let
         args = [
           "format"
           "--language"
+          "nu"
         ];
       };
       linter.package = pkgs.nu-lint;
