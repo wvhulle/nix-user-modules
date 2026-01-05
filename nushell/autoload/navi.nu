@@ -30,7 +30,7 @@ export-env {
     mode: [emacs vi_normal vi_insert]
     event: {
       send: executehostcommand
-      cmd: "navi navi_widget"
+      cmd: "navi_widget"
     }
   }
 

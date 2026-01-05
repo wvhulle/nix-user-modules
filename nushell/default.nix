@@ -6,7 +6,6 @@
 
 let
   cfg = config.programs.nushell-extended;
-  scriptsDir = ./scripts;
 in
 {
   options.programs.nushell-extended = {
@@ -15,8 +14,8 @@ in
 
   config = lib.mkIf cfg.enable {
     xdg.configFile = {
-      "nushell/scripts" = {
-        source = scriptsDir;
+      "nushell/autoload" = {
+        source = ./autoload;
         recursive = true;
       };
     };
@@ -25,7 +24,9 @@ in
       nushell = {
         enable = true;
 
+        envFile.source = ./env.nu;
         configFile.source = ./config.nu;
+        loginFile.source = ./login.nu;
       };
     };
   };
