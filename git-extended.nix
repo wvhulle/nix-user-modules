@@ -93,7 +93,7 @@ in
         };
 
         # Cannot be used with difft
-        # delta = {
+        # delta{ = {
         #   # enable = true;
         #   options = {
 
@@ -157,14 +157,30 @@ in
 
           core = {
             editor = lib.getExe cfg.defaultEditor;
+            pager = lib.getExe pkgs.delta;
           };
 
           diff = {
             algorithm = "histogram";
             colorMoved = "default";
+            # External option is managed by `difftastic` hm module
             mnemonicPrefix = true;
             renames = true;
             tool = "meld";
+          };
+
+          interactive = {
+            diffFilter = "${lib.getExe pkgs.difftastic} --color=always";
+          };
+
+          difftool = {
+            prompt = false;
+            meld.cmd = ''${lib.getExe pkgs.meld} "$LOCAL" "$REMOTE"'';
+          };
+
+          delta = {
+            navigate = true;
+            hyperlinks = true;
           };
 
           alias = {
@@ -207,6 +223,8 @@ in
             updateRefs = true;
           };
 
+          pager.difftool = true;
+
           merge = {
             conflictstyle = "zdiff3";
             tool = "meld";
@@ -214,11 +232,6 @@ in
               name = "mergiraf";
               driver = "${pkgs.mergiraf}/bin/mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L --compact";
             };
-          };
-
-          difftool = {
-            prompt = false;
-            meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$REMOTE"'';
           };
 
           mergetool.meld.cmd = ''${pkgs.meld}/bin/meld "$LOCAL" "$BASE" "$REMOTE" --output "$MERGED"'';
@@ -234,7 +247,10 @@ in
     };
 
     # Install mergiraf package when enabled
-    home.packages = [ pkgs.mergiraf ];
+    home.packages = [
+      pkgs.mergiraf
+      pkgs.delta
+    ];
 
     # Configure global gitattributes for mergiraf
     home.file.".config/git/attributes" = {

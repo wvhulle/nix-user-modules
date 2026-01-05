@@ -24,18 +24,18 @@ def is-keyboard-device [event_path: string]: nothing -> bool {
   # A real keyboard has many keys (100+), so we expect many bits set
   let total_bits = $hex_values
     | each {|hex_str|
-        try {
-          # Count bits in the hex value
-          let num = $hex_str | into int
-          mut count = 0
-          mut n = $num
-          while $n > 0 {
-            $count = $count + ($n mod 2)
-            $n = ($n // 2)
-          }
-          $count
-        } catch { 0 }
-      }
+      try {
+        # Count bits in the hex value
+        let num = $hex_str | into int
+        mut count = 0
+        mut n = $num
+        while $n > 0 {
+          $count = $count + ($n mod 2)
+          $n = ($n // 2)
+        }
+        $count
+      } catch { 0 }
+    }
     | math sum
 
   # Keyboards typically have 100+ keys, so require at least 50 capability bits
@@ -49,15 +49,15 @@ def find-keyboard [] {
   let keyboards = $event_devices
     | where {|device| is-keyboard-device $device }
     | each {|device|
-        let event_name = $device | path basename
-        let device_name_path = $"/sys/class/input/($event_name)/device/name"
-        if ($device_name_path | path exists) {
-          let device_name = open $device_name_path | str trim
-          {path: $device, name: $device_name}
-        } else {
-          null
-        }
+      let event_name = $device | path basename
+      let device_name_path = $"/sys/class/input/($event_name)/device/name"
+      if ($device_name_path | path exists) {
+        let device_name = open $device_name_path | str trim
+        {path: $device name: $device_name}
+      } else {
+        null
       }
+    }
     | compact
 
   if ($keyboards | is-empty) {
