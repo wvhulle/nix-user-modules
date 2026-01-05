@@ -6,21 +6,71 @@
 # Usage: keyboard-action-monitor.nu <trigger-key> [<modifier1> <modifier2> ...] --action <command> [--description <desc>]
 # Example: keyboard-action-monitor.nu "KEY_F23" "KEY_LEFTMETA" "KEY_LEFTSHIFT" --action "kitty" --description "Copilot Button"
 
+# Check if a device has extensive keyboard capabilities
+def is-keyboard-device [event_path: string]: nothing -> bool {
+  let event_name = $event_path | path basename
+  let cap_path = $"/sys/class/input/($event_name)/device/capabilities/key"
+
+  if not ($cap_path | path exists) {
+    return false
+  }
+
+  let capabilities = open $cap_path | lines | first | str trim
+  let hex_values = $capabilities | split row ' '
+    | where $it != ''
+    | each {|hex| '0x' + $hex }
+
+  # Count total bits set across all hex values
+  # A real keyboard has many keys (100+), so we expect many bits set
+  let total_bits = $hex_values
+    | each {|hex_str|
+        try {
+          # Count bits in the hex value
+          let num = $hex_str | into int
+          mut count = 0
+          mut n = $num
+          while $n > 0 {
+            $count = $count + ($n mod 2)
+            $n = ($n // 2)
+          }
+          $count
+        } catch { 0 }
+      }
+    | math sum
+
+  # Keyboards typically have 100+ keys, so require at least 50 capability bits
+  $total_bits > 50
+}
+
 # Find the first keyboard device
-def find-keyboard []: nothing -> string {
-  let devices = ls /dev/input/by-path/ | where name =~ "kbd"
-  if ($devices | is-empty) {
+def find-keyboard [] {
+  let event_devices = ls /dev/input/event* | get name
+
+  let keyboards = $event_devices
+    | where {|device| is-keyboard-device $device }
+    | each {|device|
+        let event_name = $device | path basename
+        let device_name_path = $"/sys/class/input/($event_name)/device/name"
+        if ($device_name_path | path exists) {
+          let device_name = open $device_name_path | str trim
+          {path: $device, name: $device_name}
+        } else {
+          null
+        }
+      }
+    | compact
+
+  if ($keyboards | is-empty) {
     error make {
       msg: "No keyboard device found"
-      help: "Ensure a keyboard is connected and accessible at /dev/input/by-path/"
-      label: {
-        text: "no keyboard devices found"
-        span: (metadata $devices).span
-      }
+      help: "Ensure a keyboard is connected and has proper permissions"
       url: "https://www.kernel.org/doc/html/latest/input/input.html"
     }
+  } else {
+    let keyboard = $keyboards | first
+    print $"<6>Found keyboard: ($keyboard.name) at ($keyboard.path)"
+    $keyboard.path
   }
-  $devices | get name | first
 }
 
 # Normalize a key name to Linux event format (add KEY_ prefix if missing, uppercase)
