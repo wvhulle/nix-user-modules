@@ -8,7 +8,7 @@ $env.PATH = (
   | split row (char esep)
   | prepend [
     ($env.HOME | path join '.nix-profile' 'bin')
-    '/run/current-system/sw/bin'
+    # '/run/current-system/sw/bin'
     '/run/wrappers/bin'
   ]
   | uniq
