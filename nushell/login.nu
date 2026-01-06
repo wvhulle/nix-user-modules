@@ -1,4 +1,2 @@
-# Aliases
-alias ll = eza -la
-alias home-switch = home-manager switch --flake ~/.config/nixos -b backup
-alias system-switch = sudo nixos-rebuild switch --flake ~/.config/nixos
+# Unclear what belongs here
+# See https://www.nushell.sh/book/configuration.html#configuring-nu-as-a-login-shell

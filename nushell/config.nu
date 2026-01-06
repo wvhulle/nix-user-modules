@@ -7,3 +7,7 @@ $env.config.completions.algorithm = "fuzzy"
 $env.config.use_kitty_protocol = true
 $env.config.filesize.precision = 3
 $env.config.float_precision = 4
+
+# Aliases
+alias home-switch = home-manager switch --flake ~/.config/nixos -b backup
+alias system-switch = sudo nixos-rebuild switch --flake ~/.config/nixos
