@@ -26,7 +26,8 @@ in
 
         envFile.source = ./env.nu;
         configFile.source = ./config.nu;
-        loginFile.source = ./login.nu;
+        # Tracked outside of Nix store for ease of use
+        # loginFile.source = ./login.nu;
       };
     };
   };

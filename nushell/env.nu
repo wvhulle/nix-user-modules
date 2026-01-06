@@ -1,19 +1,14 @@
-# Nushell environment configuration
-# This file loads before config.nu and sets up the environment
+$env.PATH ++= [
+  ($env.HOME | path join '.nix-profile' 'bin')
+  '/run/wrappers/bin'
+  ($env.HOME | path join .local bin) # For Python installed by UV
+]
 
-# Source NixOS environment to get proper PATH and other variables
-# This is essential for SSH logins to work correctly
-$env.PATH = (
-  $env.PATH
-  | split row (char esep)
-  | prepend [
-    ($env.HOME | path join '.nix-profile' 'bin')
-    # '/run/current-system/sw/bin'
-    '/run/wrappers/bin'
-    ($env.HOME | path join .local bin) # For Python installed by UV
-  ]
-  | uniq
-)
+# Root folders for finding Nu modules (`use PATH_IN_FOLDER`)
+$env.NU_LIB_DIRS = [
+  ($nu.default-config-dir | path join 'nu-scripts')
+]
+
 $env.LC_ALL = "en_US.UTF-8"
 $env.NU_PLUGIN_DIRS = [($env.HOME | path join '.cargo' 'bin')]
 $env.LD_LIBRARY_PATH = $"($env.LD_LIBRARY_PATH? | default ''):/run/current-system/sw/lib"
