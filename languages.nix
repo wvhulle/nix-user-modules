@@ -598,10 +598,12 @@ let
       servers.ast-grep-lsp = astGrepServer;
       additionalPackages = [
         pkgs.uv
-        pkgs.python3
-        pkgs.python3Packages.jupyter
-        pkgs.octave
       ];
+      servers.ty = {
+        package = pkgs.ty;
+        command = "ty";
+        args = [ "server" ];
+      };
     };
     zig = {
       additionalPackages = [ pkgs.zvm ];

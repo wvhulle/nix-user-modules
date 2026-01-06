@@ -10,6 +10,7 @@ $env.PATH = (
     ($env.HOME | path join '.nix-profile' 'bin')
     # '/run/current-system/sw/bin'
     '/run/wrappers/bin'
+    ($env.HOME | path join .local bin) # For Python installed by UV
   ]
   | uniq
 )
