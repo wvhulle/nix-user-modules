@@ -289,7 +289,12 @@ let
               allFeatures = true;
               allTargets = true;
             };
-            check.command = "clippy";
+            check.command = lib.concatStrings [
+              "clippy"
+              "--"
+              "-W clippy::pedantic"
+              "-W clippy::nursery"
+            ];
             procMacro = true;
           };
         };
