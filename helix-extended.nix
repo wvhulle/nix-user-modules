@@ -25,7 +25,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "rasmus";
+        theme = "sonokai";
 
         editor = {
           completion-replace = true;
