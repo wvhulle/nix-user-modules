@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -29,5 +30,7 @@ in
         loginFile.source = ./login.nu;
       };
     };
+
+    home.packages = [ pkgs.libnotify ];
   };
 }
