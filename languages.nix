@@ -527,39 +527,12 @@ let
         pkgs.pkg-config
       ];
     };
-    agda = {
-      scope = "source.agda";
-      fileTypes = [ "agda" ];
-      roots = [ ".git" ];
-      additionalPackages = [
-        pkgs.agda
-        pkgs.agdaPackages.standard-library
-      ];
-    };
-    coq = {
-      scope = "source.coq";
-      fileTypes = [ "v" ];
-      roots = [
-        ".git"
-        "_CoqProject"
-      ];
-      servers.vscoq = {
-        package = pkgs.coqPackages.vscoq-language-server;
-      };
-      additionalPackages = [ pkgs.coq ];
-    };
-    haskell = {
-      compiler.package = pkgs.haskell.compiler.ghc984;
-      servers.hls = {
-        package = pkgs.haskellPackages.haskell-language-server;
-      };
-      linter.package = pkgs.haskellPackages.hlint;
-      additionalPackages = [
-        pkgs.cabal-install
-        pkgs.haskellPackages.ghcid
-        pkgs.zlib
-      ];
-    };
+    # Disabled globally - use per-project devShell (agda + GHC brings ~6GB closure)
+    agda.enable = false;
+    # Disabled globally - use per-project devShell (coq brings ~1GB closure)
+    coq.enable = false;
+    # Disabled globally - use per-project devShell (GHC brings ~3GB closure)
+    haskell.enable = false;
     javascript = {
       servers = {
         typescript = {
