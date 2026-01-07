@@ -124,6 +124,11 @@ in
           light = "light";
           script = ./claude-code-theme.nu;
         };
+
+        vscode = {
+          dark = "GitHub Dark";
+          light = "GitHub Light";
+        };
       };
       description = "Applications with dark/light theme support";
     };

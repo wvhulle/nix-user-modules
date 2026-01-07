@@ -195,8 +195,8 @@ let
 
     workbench = {
       list.smoothScrolling = true;
-      preferredDarkColorTheme = "GitHub Dark Default";
-      preferredLightColorTheme = "GitHub Light Default";
+      preferredDarkColorTheme = config.programs.darkMode.apps.vscode.dark;
+      preferredLightColorTheme = config.programs.darkMode.apps.vscode.light;
       editor = {
         enablePreview = false;
         highlightModifiedTabs = true;
