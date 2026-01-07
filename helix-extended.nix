@@ -25,14 +25,19 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "everblush";
+        theme = "rasmus";
 
         editor = {
           completion-replace = true;
           lsp = {
-            display-progress-messages = true;
+            display-progress-messages = false;
+            goto-reference-include-declaration = false;
+            snippets = false;
           };
-          # line-number = "relative";
+          trim-final-newlines = true;
+          trim-trailing-whitespace = true;
+          popup-border = "all";
+          line-number = "relative";
           # gutters = [
           #   "diff"
           #   "diagnostics"
@@ -41,22 +46,22 @@ in
           # ];
           auto-format = true;
 
-          # auto-save = {
-          #   enable = true;
-          #   focus-lost = true;
-          #   after-delay = {
-          #     enable = true;
-          #     timeout = 1000;
-          #   };
-          # };
+          auto-save = {
+            enable = true;
+            focus-lost = true;
+            after-delay = {
+              enable = true;
+              timeout = 200;
+            };
+          };
           bufferline = "multiple";
           indent-guides = {
             render = true;
           };
           end-of-line-diagnostics = "hint";
           inline-diagnostics = {
-            cursor-line = "warning";
-            other-lines = "error";
+            cursor-line = "disable";
+            other-lines = "disable";
           };
 
           soft-wrap = {
@@ -65,7 +70,6 @@ in
 
           shell = [
             "nu"
-            "--login"
             "-c"
           ];
 
@@ -88,6 +92,12 @@ in
             S-l = ":buffer-next";
             S-h = ":buffer-previous";
             space = {
+              i = {
+                c = ":toggle inline-diagnostics.cursor-line hint disable";
+                e = ":toggle end-of-line-diagnostics warning disable";
+                o = ":toggle inline-diagnostics.other-lines error disable";
+
+              };
               t = {
                 "1" = ":theme ${config.programs.darkMode.apps.helix.dark}";
                 "2" = ":theme ${config.programs.darkMode.apps.helix.light}";

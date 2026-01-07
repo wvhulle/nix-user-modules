@@ -21,8 +21,9 @@ def send-notification [title: string body: string --urgency: string = "normal"]:
 
 export def create-desktop-notification [command: string exit_code: int --duration: duration = 0sec]: nothing -> nothing {
   let urgency = exit-code-to-urgency $exit_code
-  let title = $"Command failed: ($command)"
-  let body = $"Exit code: ($exit_code)\nDuration: ($duration)"
+  let first_word = $command | split row ' ' | first
+  let title = $"Command failed: ($first_word)"
+  let body = $"Exit code: ($exit_code) | Duration: ($duration)\n($command)"
   send-notification $title $body --urgency $urgency
 }
 
@@ -35,7 +36,11 @@ def is-user-interrupt [exit_code: int]: nothing -> bool {
 }
 
 def get-last-command []: nothing -> string {
-  try { history | last | get command | split row ' ' | first } catch { "" }
+  $env._LAST_EXECUTED_COMMAND? | default ""
+}
+
+def get-first-word [command: string]: nothing -> string {
+  $command | split row ' ' | first
 }
 
 def get-command-duration []: nothing -> duration {
@@ -53,12 +58,25 @@ export def notify-long-command []: nothing -> nothing {
   if (is-user-interrupt $exit_code) { return }
 
   let command = get-last-command
-  if (is-interactive-command $command) { return }
+  if $command == "" { return }
+  let first_word = get-first-word $command
+  if (is-interactive-command $first_word) { return }
 
   create-desktop-notification $command $exit_code --duration $duration
 }
 
+def capture-current-command []: nothing -> nothing {
+  let cmd = (commandline)
+  if $cmd != "" {
+    $env._LAST_EXECUTED_COMMAND = $cmd
+  }
+}
+
 export-env {
+  $env.config.hooks.pre_execution = (
+    ($env.config.hooks.pre_execution? | default [])
+    ++ [{|| capture-current-command }]
+  )
   $env.config.hooks.pre_prompt = (
     ($env.config.hooks.pre_prompt? | default [])
     ++ [{|| notify-long-command }]
