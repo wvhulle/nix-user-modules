@@ -27,8 +27,8 @@ let
         astGrepServer
         ;
     };
-    cpp = import ./cpp.nix { inherit lib pkgs astGrepServer; };
-    javascript = import ./javascript.nix { inherit lib pkgs astGrepServer; };
+    cpp = import ./cpp.nix { inherit pkgs astGrepServer; };
+    javascript = import ./javascript.nix { inherit pkgs astGrepServer; };
     nix = import ./nix.nix {
       inherit
         lib

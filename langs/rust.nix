@@ -37,7 +37,7 @@
       config = {
         cachePriming.enable = true;
         lens.references.method.enable = true;
-        imports.preferNoStd = true;
+        imports.preferNoStd = false; # Only enable for embedded, will cause errors when writing std macro's otherwise.
         completion.postfix.enable = false;
         diagnostics.experimental.enable = true;
         cargo = {
