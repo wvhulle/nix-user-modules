@@ -9,5 +9,5 @@ $env.config.filesize.precision = 3
 $env.config.float_precision = 4
 
 # Aliases
-alias home-switch = nh home switch --flake $"~/.config/nixos#($env.USER)@((sys host).hostname)" --show-trace -b backup
-alias system-switch = nh os switch --flake $"~/.config/nixos#((sys host).hostname)"
+alias home-switch = nh home switch $"/home/($env.USER)/.config/nixos" --show-trace -b backup
+alias system-switch = nh os switch $"/home/($env.USER)/.config/nixos" --show-trace

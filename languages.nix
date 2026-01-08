@@ -29,35 +29,41 @@ let
 
   toolType = lib.types.submodule { options = toolOptions; };
 
-  serverType = lib.types.submodule {
-    options = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
-        description = "Whether to enable this tool";
+  serverType = lib.types.submodule (
+    { config, ... }:
+    {
+      options = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Whether to enable this tool";
+        };
+        package = lib.mkOption {
+          type = lib.types.nullOr lib.types.package;
+          default = null;
+          description = "Package providing the tool (null if externally managed)";
+        };
+        args = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Additional arguments to pass to the tool";
+        };
+        command = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Command to run the language server (defaults to lib.getExe package)";
+        };
+        config = lib.mkOption {
+          type = lib.types.attrs;
+          default = { };
+          description = "Configuration for the language server";
+        };
       };
-      package = lib.mkOption {
-        type = lib.types.nullOr lib.types.package;
-        default = null;
-        description = "Package providing the tool (null if externally managed)";
+      config = {
+        command = lib.mkIf (config.package != null) (lib.mkDefault (lib.getExe config.package));
       };
-      args = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "Additional arguments to pass to the tool";
-      };
-      command = lib.mkOption {
-        type = lib.types.str;
-        default = "";
-        description = "Command to run the language server (defaults to package binary)";
-      };
-      config = lib.mkOption {
-        type = lib.types.attrs;
-        default = { };
-        description = "Configuration for the language server";
-      };
-    };
-  };
+    }
+  );
 
   formatterType = lib.types.submodule {
     options = toolOptions // {
@@ -279,7 +285,14 @@ let
     rust = {
       servers = {
         rust-analyzer = {
+          package = pkgs.rust-analyzer;
           config = {
+            # In case problems, run
+            # helix -v
+            # hx src/main.rs
+            # :w
+            # tail -f ~/.cache/helix/helix.log
+            # :lsp-restart
             cachePriming.enable = true;
             imports.preferNoStd = true;
             lens.references.method.enable = true;
@@ -289,13 +302,32 @@ let
               allFeatures = true;
               allTargets = true;
             };
-            check.command = lib.concatStrings [
-              "clippy"
-              "--"
-              "-W clippy::pedantic"
-              "-W clippy::nursery"
-            ];
-            procMacro = true;
+            rustfmt = {
+              rangeFormatting.enable = true;
+              extraArgs = [
+                "--unstable-features"
+                "--config"
+                (lib.concatStringsSep "," [
+                  "group_imports=StdExternalCrate"
+                  "imports_granularity=Crate"
+                  "use_field_init_shorthand=true"
+                  "format_code_in_doc_comments=true"
+                  "normalize_doc_attributes=true"
+                ])
+              ];
+            };
+            check = {
+              command = "clippy";
+
+              extraArgs = [
+                "--"
+                "-W"
+                "clippy::pedantic"
+                "-W"
+                "clippy::nursery"
+              ];
+            };
+            procMacro.enable = true;
           };
         };
         typos-lsp = typosServer;
@@ -370,8 +402,8 @@ let
       };
       additionalPaths = [ "${config.home.homeDirectory}/.cargo/bin" ];
       additionalPackages = [
-        pkgs.rustup
         pkgs.taplo
+        pkgs.rustup
       ];
     };
     typst = {
@@ -507,6 +539,7 @@ let
       servers = {
         clangd = {
           package = pkgs.clang-tools;
+          command = "clangd";
           args = [
             "--background-index"
             "--query-driver=**/*clang++,**/*g++"
@@ -540,6 +573,35 @@ let
         };
         eslint = {
           package = pkgs.vscode-langservers-extracted;
+          command = "vscode-eslint-language-server";
+          args = [ "--stdio" ];
+          config = {
+            validate = "on";
+            packageManager = "yarn";
+            useESLintClass = false;
+            codeActionOnSave.mode = "all";
+            # codeActionsOnSave = { mode = "all"; };
+            format = true;
+            quiet = false;
+            onIgnoredFiles = "off";
+            rulesCustomizations = [ ];
+            run = "onType";
+            # nodePath configures the directory in which the eslint server should start its node_modules resolution.
+            # This path is relative to the workspace folder (root dir) of the server instance.
+            nodePath = "";
+            # use the workspace folder location or the file location (if no workspace folder is open) as the working directory
+
+            workingDirectory.mode = "auto";
+            experimental = { };
+            problems.shortenToSingleLine = false;
+            codeAction = {
+              disableRuleComment = {
+                enable = true;
+                location = "separateLine";
+              };
+              showDocumentation.enable = true;
+            };
+          };
         };
         ast-grep-lsp = astGrepServer;
       };
@@ -589,14 +651,6 @@ let
   };
 
   enabledLanguages = lib.filterAttrs (_: l: l.enable) cfg.languages;
-
-  allServers = lib.filter (s: s.package != null) (
-    lib.flatten (
-      lib.mapAttrsToList (
-        _: lang: lib.attrValues (lib.filterAttrs (_: s: s.enable) lang.servers)
-      ) enabledLanguages
-    )
-  );
 
   allFormatters = lib.filter (f: f != null && f.enable) (
     lib.mapAttrsToList (_: lang: lang.formatter) enabledLanguages
@@ -652,8 +706,7 @@ in
       sessionPath = allAdditionalPaths;
 
       packages =
-        (map (s: s.package) allServers)
-        ++ (map (f: f.package) allFormatters)
+        (map (f: f.package) allFormatters)
         ++ (map (l: l.package) allLinters)
         ++ (map (c: c.package) allCompilers)
         ++ (map (d: d.package) allDebuggers)

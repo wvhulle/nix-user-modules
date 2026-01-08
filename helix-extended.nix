@@ -4,6 +4,20 @@ let
   cfg = config.programs.helix-extended;
   langCfg = config.programs.languages;
 
+  # Well-known language servers that Helix can find by name without explicit path
+  builtinServers = [
+    "rust-analyzer"
+    "clangd"
+    "gopls"
+    "pylsp"
+    "typescript-language-server"
+    "vscode-css-language-server"
+    "vscode-html-language-server"
+    "vscode-json-language-server"
+    "yaml-language-server"
+    "zls"
+  ];
+
   getFormatterCommand =
     name: formatter:
     if formatter.command != "" then formatter.command else "${formatter.package}/bin/${name}";
@@ -13,6 +27,24 @@ let
   getLangFormatter = langName: langCfg.languages.${langName}.formatter or null;
 
   getLangDebugger = langName: langCfg.languages.${langName}.debugger or null;
+
+  # Get the command for a language server with proper fallbacks
+  getServerCommand =
+    name: server:
+    if server.command != null then
+      server.command
+    else if lib.elem name builtinServers then
+      name
+    else
+      null;
+
+  # Check if a server config is valid (has at least a command or config)
+  isValidServerConfig =
+    name: server:
+    let
+      cmd = getServerCommand name server;
+    in
+    cmd != null || server.config != { };
 in
 {
   options.programs.helix-extended = {
@@ -160,15 +192,6 @@ in
 
         language-server =
           let
-            getServerCommand =
-              name: server:
-              if server.command != "" then
-                server.command
-              else if server.package != null then
-                "${server.package}/bin/${name}"
-              else
-                null;
-
             mkServerConfig =
               name: server:
               let
@@ -189,8 +212,11 @@ in
             );
 
             enabledServers = lib.filterAttrs (_: s: s.enable) allServers;
+
+            # Filter out servers that would generate empty/invalid configs
+            validServers = lib.filterAttrs (name: server: isValidServerConfig name server) enabledServers;
           in
-          lib.mapAttrs' mkServerConfig enabledServers;
+          lib.mapAttrs' mkServerConfig validServers;
       };
     };
 
