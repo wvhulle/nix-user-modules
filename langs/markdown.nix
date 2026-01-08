@@ -19,7 +19,12 @@
       "--stdin"
     ];
   };
-  servers.typos-lsp = typosServer;
+  servers = {
+    typos-lsp = typosServer;
+    marksman = {
+      package = pkgs.marksman;
+    };
+  };
   additionalPackages = [
     pkgs.zola
     pkgs.presenterm
