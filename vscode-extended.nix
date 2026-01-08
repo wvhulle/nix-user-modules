@@ -8,6 +8,7 @@
 let
   cfg = config.programs.vscode-extended;
   agentCfg = config.programs.agents;
+  langsCfg = config.programs.languages;
   fontsCfg = config.programs.typography;
 
   capitalize = name: lib.strings.toUpper (lib.substring 0 1 name) + lib.substring 1 (-1) name;
@@ -522,9 +523,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Enable MCP server management for VSCode
-    programs.mcp-extended.enable = true;
-
     warnings =
       lib.optional
         (
@@ -548,44 +546,21 @@ in
         })
       ]
       ++ (lib.mapAttrsToList (
-        name: langCfg:
-        lib.optionalAttrs (cfg.includeAgentInstructions && langCfg.enable) {
+        name: langCfg':
+        lib.optionalAttrs (cfg.includeAgentInstructions && langCfg'.enable) {
           "Code/User/prompts/${name}.instructions.md" = {
-            source = generateLanguageInstructionFile name langCfg;
+            source = generateLanguageInstructionFile name langCfg';
           };
         }
-      ) agentCfg.languages)
+      ) langsCfg.languages)
     );
 
-    home = {
-      extraActivationPath = [ pkgs.nushell ];
-
-      activation = {
-        # Setup MCP servers configuration for VSCode
-        setupVscodeMcpServers =
-          let
-            mcpCfg = config.programs.mcp-extended;
-            mcpConfigJson = builtins.toJSON {
-              mcpServers = lib.mapAttrs (_name: server: {
-                type = "stdio";
-                command = if server.command != "" then server.command else "${lib.getExe server.package}";
-                inherit (server) args;
-                inherit (server) env;
-              }) mcpCfg.servers;
-            };
-          in
-          lib.mkIf (mcpCfg.enable && mcpCfg.servers != { }) (
-            lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-              ${./setup-vscode-mcp.nu} --mcp-config '${mcpConfigJson}' --scope user
-            ''
-          );
-      };
-    };
     programs.vscode = {
       enable = true;
       package = pkgs.vscode;
       mutableExtensionsDir = false;
       profiles.default = {
+        enableMcpIntegration = true;
         extensions = defaultNixpkgsExtensions ++ defaultMarketplaceExtensions ++ cfg.additionalExtensions;
 
         userSettings = flattenVscodeSettings (

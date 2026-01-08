@@ -19,8 +19,7 @@ let
   ];
 
   getFormatterCommand =
-    name: formatter:
-    if formatter.command != "" then formatter.command else "${formatter.package}/bin/${name}";
+    formatter: if formatter.command != null then formatter.command else lib.getExe formatter.package;
 
   getLangServers = langName: lib.attrNames (langCfg.languages.${langName}.servers or { });
 
@@ -158,8 +157,6 @@ in
               let
                 helixLangName = langNameMap.${langName} or langName;
                 formatter = getLangFormatter langName;
-                formatterName =
-                  if formatter != null then formatter.package.pname or formatter.package.name else null;
                 debugger = getLangDebugger langName;
               in
               {
@@ -168,12 +165,13 @@ in
                 language-servers = getLangServers langName;
               }
               // lib.optionalAttrs (langConfig.scope != null) { inherit (langConfig) scope; }
-              // lib.optionalAttrs (langConfig.fileTypes != [ ]) {
-                file-types = langConfig.fileTypes;
+              // {
+                # Use fileTypes if specified, otherwise derive from extensions
+                file-types = if langConfig.fileTypes != [ ] then langConfig.fileTypes else langConfig.extensions;
               }
               // lib.optionalAttrs (langConfig.roots != [ ]) { inherit (langConfig) roots; }
               // lib.optionalAttrs (formatter != null) {
-                formatter.command = getFormatterCommand formatterName formatter;
+                formatter.command = getFormatterCommand formatter;
                 formatter.args = formatter.args ++ lib.optional (langName == "markdown") helixLangName;
               }
               // lib.optionalAttrs (debugger != null && debugger.enable) {

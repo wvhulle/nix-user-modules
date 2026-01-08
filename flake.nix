@@ -14,7 +14,7 @@
       git-extended = ./git-extended.nix;
       helix-extended = ./helix-extended.nix;
       keyboard-action = ./keyboard-action.nix;
-      languages = ./languages.nix;
+      langs = ./langs;
       nushell-extended = ./nushell;
       topiary = ./topiary.nix;
       typos = ./typos.nix;
