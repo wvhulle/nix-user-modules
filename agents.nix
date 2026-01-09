@@ -1,6 +1,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 
@@ -87,6 +88,93 @@ let
       allEntries = commandEntries ++ patternEntries;
     in
     lib.foldl' (acc: entry: acc // entry) { } allEntries;
+
+  generateLanguageSkills =
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.instructions != [ ]) langCfg.languages;
+
+      skillDirs = lib.mapAttrsToList (name: langCfg': {
+        inherit name;
+        path = pkgs.writeTextDir "SKILL.md" ''
+          ---
+          name: ${name}-guidelines
+          description: Guidelines for developing in `${name}`
+          ---
+
+          # Guidelines for `${name}` development
+
+          ${formatInstructionList langCfg'.instructions}
+        '';
+      }) enabledLanguages;
+
+      languageSkillsDir = pkgs.linkFarm "language-skills" skillDirs;
+    in
+    if cfg.skillsFolder != null then
+      pkgs.symlinkJoin {
+        name = "agent-skills";
+        paths = [
+          languageSkillsDir
+          cfg.skillsFolder
+        ];
+      }
+    else
+      languageSkillsDir;
+
+  generateLanguageSkillFiles =
+    prefix:
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.instructions != [ ]) langCfg.languages;
+    in
+    lib.mapAttrsToList (name: langCfg': {
+      name = "${prefix}/${name}/SKILL.md";
+      value = {
+        text = ''
+          ---
+          name: ${name}-guidelines
+          description: Guidelines for developing in `${name}`
+          ---
+
+          # Guidelines for `${name}` development
+
+          ${formatInstructionList langCfg'.instructions}
+        '';
+      };
+    }) enabledLanguages;
+
+  generateLanguageCommands =
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.commands != { }) langCfg.languages;
+    in
+    lib.foldl' (
+      acc: langName:
+      let
+        lang = langCfg.languages.${langName};
+      in
+      acc
+      // (lib.mapAttrs' (
+        cmdName: cmdCfg:
+        lib.nameValuePair "${langName}-${cmdName}" (
+          let
+            frontmatter = lib.concatStringsSep "\n" (
+              lib.filter (x: x != "") [
+                "description: ${cmdCfg.description}"
+                (lib.optionalString (
+                  cmdCfg.allowedTools != [ ]
+                ) "allowed-tools: ${lib.concatStringsSep ", " cmdCfg.allowedTools}")
+                (lib.optionalString (cmdCfg.argumentHint != null) "argument-hint: ${cmdCfg.argumentHint}")
+              ]
+            );
+          in
+          ''
+            ---
+            ${frontmatter}
+            ---
+
+            ${cmdCfg.prompt}
+          ''
+        )
+      ) lang.commands)
+    ) { } (lib.attrNames enabledLanguages);
 
   globalTerminalCommands = {
     git-read = {
@@ -213,6 +301,12 @@ in
       description = "Base instructions for AI agents in order of importance";
     };
 
+    skillsFolder = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "Path to a folder containing custom skill definitions to merge with language skills";
+    };
+
     terminalCommands = lib.mkOption {
       type = lib.types.attrsOf terminalCommandType;
       default = globalTerminalCommands;
@@ -225,6 +319,30 @@ in
       internal = true;
       default = terminalCommandType;
       description = "Terminal command type for use by other modules";
+    };
+
+    languageSkills = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+      default = generateLanguageSkills;
+      description = "Generated language skills directory for AI agents";
+    };
+
+    languageSkillFiles = lib.mkOption {
+      type = lib.types.raw;
+      readOnly = true;
+      internal = true;
+      default = generateLanguageSkillFiles;
+      description = "Function that generates language skill files for home.file usage. Takes a prefix path as argument.";
+    };
+
+    languageCommands = lib.mkOption {
+      type = lib.types.attrsOf lib.types.str;
+      readOnly = true;
+      internal = true;
+      default = generateLanguageCommands;
+      description = "Generated language commands for AI agents";
     };
 
     generated = {

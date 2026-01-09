@@ -9,82 +9,12 @@ let
   cfg = config.programs.claude-extended;
   agentCfg = config.programs.agents;
   mcpCfg = config.programs.mcp;
-  langCfg = config.programs.languages;
 
   formatInstructionList =
     instructions:
     lib.concatStringsSep "\n" (
       lib.imap0 (i: instruction: "${toString (i + 1)}. ${instruction}") instructions
     );
-
-  capitalizeFirst = name: lib.strings.toUpper (lib.substring 0 1 name) + lib.substring 1 (-1) name;
-
-  generateSkillDescription =
-    instructions:
-    let
-      firstThree = lib.take 3 instructions;
-      shortened = map (
-        s:
-        let
-          len = lib.stringLength s;
-        in
-        if len > 50 then (lib.substring 0 47 s) + "..." else s
-      ) firstThree;
-    in
-    lib.concatStringsSep ", " shortened;
-
-  generateLanguageSkills =
-    let
-      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.instructions != [ ]) langCfg.languages;
-    in
-    lib.mapAttrs' (
-      name: langCfg':
-      lib.nameValuePair name ''
-        ---
-        name: ${name}-guidelines
-        description: ${capitalizeFirst name} development: ${generateSkillDescription langCfg'.instructions}
-        ---
-
-        # ${capitalizeFirst name} Guidelines
-
-        ${formatInstructionList langCfg'.instructions}
-      ''
-    ) enabledLanguages;
-
-  generateLanguageCommands =
-    let
-      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.commands != { }) langCfg.languages;
-    in
-    lib.foldl' (
-      acc: langName:
-      let
-        lang = langCfg.languages.${langName};
-      in
-      acc
-      // (lib.mapAttrs' (
-        cmdName: cmdCfg:
-        lib.nameValuePair "${langName}-${cmdName}" (
-          let
-            frontmatter = lib.concatStringsSep "\n" (
-              lib.filter (x: x != "") [
-                "description: ${cmdCfg.description}"
-                (lib.optionalString (
-                  cmdCfg.allowedTools != [ ]
-                ) "allowed-tools: ${lib.concatStringsSep ", " cmdCfg.allowedTools}")
-                (lib.optionalString (cmdCfg.argumentHint != null) "argument-hint: ${cmdCfg.argumentHint}")
-              ]
-            );
-          in
-          ''
-            ---
-            ${frontmatter}
-            ---
-
-            ${cmdCfg.prompt}
-          ''
-        )
-      ) lang.commands)
-    ) { } (lib.attrNames enabledLanguages);
 
   generateBaseMemory = ''
     # Instructions for AI Agents
@@ -151,9 +81,9 @@ in
 
       memory.text = generateBaseMemory;
 
-      skills = generateLanguageSkills;
+      skillsDir = agentCfg.languageSkills;
 
-      commands = generateLanguageCommands;
+      commands = agentCfg.languageCommands;
 
       settings = {
         permissions = {

@@ -424,28 +424,6 @@ let
       ${instructionsText}
     '';
 
-  generateLanguageSkills =
-    let
-      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.instructions != [ ]) langsCfg.languages;
-    in
-    lib.mapAttrsToList (name: langCfg': {
-      name = ".github/skills/${name}/SKILL.md";
-      value = {
-        text = ''
-          ---
-          name: ${name}-guidelines
-          description: ${capitalize name} development: ${lib.concatStringsSep ", " (lib.take 3 langCfg'.instructions)}
-          ---
-
-          # ${capitalize name} Guidelines
-
-          ${lib.concatStringsSep "\n" (
-            lib.imap0 (i: instr: "${toString (i + 1)}. ${instr}") langCfg'.instructions
-          )}
-        '';
-      };
-    }) enabledLanguages;
-
   generateLanguagePrompts =
     let
       enabledLanguages = lib.filterAttrs (_: l: l.enable && l.commands != { }) langsCfg.languages;
@@ -632,7 +610,7 @@ in
         '';
 
     home.file = lib.mkMerge (
-      (map (skill: { ${skill.name} = skill.value; }) generateLanguageSkills)
+      (map (skill: { ${skill.name} = skill.value; }) (agentCfg.languageSkillFiles ".github/skills"))
       ++ (map (prompt: { ${prompt.name} = prompt.value; }) generateLanguagePrompts)
     );
 
