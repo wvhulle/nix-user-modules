@@ -41,7 +41,7 @@ in
   servers = {
     nixd = {
       package = pkgs.nixd;
-      command = "nixd";
+      # command = "nixd";
       args = [ "--semantic-tokens=true" ];
       config.nixd = {
         nixpkgs.expr = "import ${myFlake}.inputs.nixpkgs { }";

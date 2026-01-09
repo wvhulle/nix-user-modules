@@ -43,7 +43,7 @@
 
   servers = {
     rust-analyzer = {
-      package = pkgs.rust-analyzer;
+      # package = pkgs.rust-analyzer;
       config = {
         cachePriming.enable = true;
         lens.references.method.enable = true;

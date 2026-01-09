@@ -62,6 +62,7 @@ in
           completion-replace = true;
           lsp = {
             display-progress-messages = false;
+            display-inlay-hints = true;
             goto-reference-include-declaration = false;
             snippets = false;
           };

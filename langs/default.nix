@@ -273,21 +273,25 @@ let
     };
   };
 
-  enabledLanguages = lib.filterAttrs (_: l: l.enable) cfg.languages;
+  enabledLanguages = lib.attrValues (lib.filterAttrs (_: l: l.enable) cfg.languages);
 
-  collectFromLanguages =
-    field: filter: lib.filter filter (lib.mapAttrsToList (_: lang: lang.${field}) enabledLanguages);
+  # Helper to collect enabled tools from all languages
+  collectTools = field: predicate: lib.filter predicate (map (lang: lang.${field}) enabledLanguages);
 
-  allFormatters = collectFromLanguages "formatter" (f: f != null && f.enable);
-  allLinters = collectFromLanguages "linter" (l: l != null && l.enable);
-  allCompilers = collectFromLanguages "compiler" (c: c != null && c.enable);
-  allDebuggers = collectFromLanguages "debugger" (d: d != null && d.enable);
-  allAdditionalPaths = lib.flatten (
-    lib.mapAttrsToList (_: lang: lang.additionalPaths) enabledLanguages
-  );
-  allAdditionalPackages = lib.flatten (
-    lib.mapAttrsToList (_: lang: lang.additionalPackages) enabledLanguages
-  );
+  allFormatters = collectTools "formatter" (f: f != null && f.enable);
+  allLinters = collectTools "linter" (l: l != null && l.enable);
+  allCompilers = collectTools "compiler" (c: c != null && c.enable);
+  allDebuggers = collectTools "debugger" (d: d != null && d.enable);
+  allAdditionalPaths = lib.concatMap (lang: lang.additionalPaths) enabledLanguages;
+  allAdditionalPackages = lib.concatMap (lang: lang.additionalPackages) enabledLanguages;
+  allLSPServers = lib.concatMap (
+    lang:
+    lib.pipe lang.servers [
+      (lib.filterAttrs (_: s: s.enable && s.package != null))
+      lib.attrValues
+      (map (s: s.package))
+    ]
+  ) enabledLanguages;
 in
 {
   options.programs.languages = {
@@ -320,7 +324,8 @@ in
         ++ (map (l: l.package) allLinters)
         ++ (map (c: c.package) allCompilers)
         ++ (map (d: d.package) allDebuggers)
-        ++ allAdditionalPackages;
+        ++ allAdditionalPackages
+        ++ allLSPServers;
     };
   };
 }
