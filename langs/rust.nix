@@ -10,19 +10,9 @@
   scope = "source.rust";
   extensions = [ "rs" ];
   instructions = [
-    "Never use the `anyhow` dependency."
-    "Never use the `String` type for building error types or enum variants."
-    "Only make code `pub` or `pub(crate)` when necessary."
-    "Use `Result` and `Option` consistently instead of panicking."
     "Use the `clippy` linter to improve code quality."
-    "Write new tests for public API inside the tests/ folder"
-    "Write new unit tests for private API inside the relevant src file"
     "Use extension traits to group together related methods that are always called on the same (first) argument type."
     "Fix a large portion of clippy problems automatically with `cargo clippy --all-targets --fix --allow-dirty`."
-    "Instead of adding comments that become stale, add logging with the external `log` crate and its macros."
-    "Do not create unit structs."
-    "Don't make internal modules public."
-    "Never use programming language-specific words like `types`, `trait`, `functions`, or `variables` in module or variable names."
   ];
 
   commands = {

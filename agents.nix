@@ -10,22 +10,11 @@ let
   langCfg = config.programs.languages;
 
   defaultBaseInstructions = [
-    "IMPORTANT: Read the @CONTRIBUTING.md file if present to see important repository-specific guidelines."
-    "IMPORTANT: Never comment-out or adjust tests while fixing bugs. Instead, double-check the test expectations and fix the library implementation."
-    "IMPORTANT: Remove useless comments and replace comments by more informative naming standards of variables."
-    "IMPORTANT: Don't tell how good my ideas are. Be a critical conversation partner."
-    "IMPORTANT: Use a functional and idiomatic programming style."
-    "Do not create textual summary files."
-    "Don't use emojis or emoticons in any output or documentation."
-    "When a command is missing, you can use `nix-shell -p [command-nix-package] --run 'command'` for running the missing command."
-    "Enable logging to debug difficult failing tests"
-    "You should never capture or redirect stdout or stderr output unless necessary."
-    "Modify documents in-place. Do not create new version with suffixes in the filename."
-    "Use custom composite `ast-grep` rules to make bulk code changes in large code bases to save time."
-    "When you are done with all tasks, search the codebase for todo (case-insensitive) comments to continue with."
-    "Remove dead / unused code and inline simple functions that are just used once."
+    "Read the @CONTRIBUTING.md file if present to see important repository-specific guidelines."
+    "Don't tell how good my ideas are. Be a critical conversation partner."
+    "Use a functional and idiomatic programming style."
+
     "When you copy code from online sources, include a comment with the source URL."
-    "On Linux and NixOS, run commands with `--no-pager` where possible (such as `systemctl`)."
   ];
 
   formatInstructionList =

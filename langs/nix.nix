@@ -13,14 +13,7 @@ in
 {
   scope = "source.nix";
   extensions = [ "nix" ];
-  instructions = [
-    "Use the 'no pager' option when running commands that are often paged (such as `systemctl`)."
-    "Never run any `find` command on the `/nix/store` folder based on filename, because absolute store paths slow to traverse and unpredictable."
-    "Use `command-not-found BINARY` to find the nix package to install."
-    "Use separate files for shell scripts, never inline them in nix files (unless it is a one-liner)."
-    "Never use nix built-in string replacement or substitution with `@` placeholders on external included files but implement command-line argument passing."
-    "Declare runtime dependencies for scripts in the related Nix systemd service definition and its path option."
-  ];
+  instructions = [ ];
 
   terminalCommands = {
     nix-read = {

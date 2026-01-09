@@ -5,8 +5,6 @@
   extensions = [ "py" ];
   instructions = [
     "Use type hints"
-    "Use structured error handling with specific exception types"
-    "Validate inputs and provide clear error messages"
   ];
   servers = {
     ast-grep-lsp = astGrepServer;
