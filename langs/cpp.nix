@@ -128,7 +128,7 @@
     pkgs.gnumake
     pkgs.bear
     pkgs.gdb
-    pkgs.watchexec
+    pkgs.entr
     pkgs.openssl
     pkgs.pkg-config
   ];

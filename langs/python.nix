@@ -3,9 +3,7 @@
 {
   scope = "source.python";
   extensions = [ "py" ];
-  instructions = [
-    "Use type hints"
-  ];
+  instructions = [ "Use type hints" ];
   servers = {
     ast-grep-lsp = astGrepServer;
     ty = {

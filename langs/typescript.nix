@@ -6,8 +6,6 @@ _:
     "ts"
     "tsx"
   ];
-  instructions = [
-    "For NodeJS projects, always add strict eslint lint configuration that enforces a modern idiomatic functional TypeScript style."
-  ];
+  instructions = [ ];
   enable = false;
 }

@@ -5,8 +5,6 @@
   extensions = [ "nu" ];
   instructions = [
     "Leverage Nushell's structured data capabilities for data manipulation."
-    "Utilize built-in Nushell commands for common tasks instead of external utilities."
-    "When writing scripts, prefer pipelines and data transformations over imperative loops."
     "Run nu-lint to see style issues in Nu scripts."
   ];
   formatter = {
