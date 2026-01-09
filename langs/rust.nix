@@ -25,6 +25,88 @@
     "Never use programming language-specific words like `types`, `trait`, `functions`, or `variables` in module or variable names."
   ];
 
+  commands = {
+    test = {
+      description = "Run Rust tests with detailed error output";
+      prompt = ''
+        Run the full test suite using `cargo test`.
+        If tests fail:
+        1. Analyze the error messages
+        2. Identify the root cause
+        3. Suggest specific fixes
+
+        Focus on:
+        - Test assertion failures
+        - Compilation errors in test code
+        - Missing trait implementations
+        - Lifetime or borrow checker issues
+      '';
+      allowedTools = [
+        "Bash(cargo:*)"
+        "Read(//)"
+      ];
+      argumentHint = "[test-name-pattern]";
+    };
+
+    clippy = {
+      description = "Run clippy and apply fixes";
+      prompt = ''
+        1. Run `cargo clippy --all-targets --fix --allow-dirty`
+        2. Review the automated changes
+        3. For remaining warnings, explain and suggest manual fixes
+        4. Prioritize fixes by severity (deny > warn > allow)
+      '';
+      allowedTools = [
+        "Bash(cargo:*)"
+        "Read(//)"
+        "Edit(//)"
+      ];
+    };
+
+    add-error = {
+      description = "Add a new error type following Rust best practices";
+      prompt = ''
+        Create a new error type in the specified module that:
+        - Uses `thiserror` derive macro (never `anyhow`)
+        - Has descriptive variant names
+        - Includes context in error messages
+        - Implements proper error chaining with `#[from]`
+        - Uses `&'static str` for fixed messages, not `String`
+
+        Example structure:
+        ```rust
+        use thiserror::Error;
+
+        #[derive(Error, Debug)]
+        pub enum YourError {
+            #[error("descriptive message: {0}")]
+            Variant(#[from] SourceError),
+        }
+        ```
+      '';
+      argumentHint = "<module-path>";
+      allowedTools = [
+        "Read(//)"
+        "Edit(//)"
+        "Write(//)"
+      ];
+    };
+
+    bench = {
+      description = "Run benchmarks and analyze performance";
+      prompt = ''
+        1. Run `cargo bench` to execute benchmarks
+        2. Analyze the results
+        3. Identify performance bottlenecks
+        4. Suggest optimizations based on the metrics
+      '';
+      allowedTools = [
+        "Bash(cargo:*)"
+        "Read(//)"
+      ];
+    };
+  };
+
   terminalCommands.cargo = {
     autoApprove = true;
     exactCommands = [ ];

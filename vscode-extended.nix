@@ -424,6 +424,100 @@ let
       ${instructionsText}
     '';
 
+  generateLanguageSkills =
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.instructions != [ ]) langsCfg.languages;
+    in
+    lib.mapAttrsToList (name: langCfg': {
+      name = ".github/skills/${name}/SKILL.md";
+      value = {
+        text = ''
+          ---
+          name: ${name}-guidelines
+          description: ${capitalize name} development: ${lib.concatStringsSep ", " (lib.take 3 langCfg'.instructions)}
+          ---
+
+          # ${capitalize name} Guidelines
+
+          ${lib.concatStringsSep "\n" (
+            lib.imap0 (i: instr: "${toString (i + 1)}. ${instr}") langCfg'.instructions
+          )}
+        '';
+      };
+    }) enabledLanguages;
+
+  generateLanguagePrompts =
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.commands != { }) langsCfg.languages;
+
+      generatePromptFile =
+        langName: cmdName: cmdCfg: location:
+        let
+          frontmatter = lib.concatStringsSep "\n" (
+            lib.filter (x: x != "") [
+              "description: ${cmdCfg.description}"
+              (lib.optionalString (cmdCfg.argumentHint != null) "argument-hint: ${cmdCfg.argumentHint}")
+            ]
+          );
+        in
+        {
+          name = "${location}/${langName}/${cmdName}.prompt.md";
+          value = {
+            text = ''
+              ---
+              ${frontmatter}
+              ---
+
+              ${cmdCfg.prompt}
+            '';
+          };
+        };
+    in
+    lib.flatten (
+      lib.mapAttrsToList (
+        langName: lang:
+        lib.flatten (
+          lib.mapAttrsToList (cmdName: cmdCfg: [
+            # Workspace prompts (.github/prompts)
+            (generatePromptFile langName cmdName cmdCfg ".github/prompts")
+          ]) lang.commands
+        )
+      ) enabledLanguages
+    );
+
+  generateUserPrompts =
+    let
+      enabledLanguages = lib.filterAttrs (_: l: l.enable && l.commands != { }) langsCfg.languages;
+    in
+    lib.flatten (
+      lib.mapAttrsToList (
+        langName: lang:
+        lib.mapAttrsToList (
+          cmdName: cmdCfg:
+          let
+            frontmatter = lib.concatStringsSep "\n" (
+              lib.filter (x: x != "") [
+                "description: ${cmdCfg.description}"
+                (lib.optionalString (cmdCfg.argumentHint != null) "argument-hint: ${cmdCfg.argumentHint}")
+              ]
+            );
+          in
+          {
+            name = "Code/User/prompts/${langName}-${cmdName}.prompt.md";
+            value = {
+              text = ''
+                ---
+                ${frontmatter}
+                ---
+
+                ${cmdCfg.prompt}
+              '';
+            };
+          }
+        ) lang.commands
+      ) enabledLanguages
+    );
+
   claudeProcessWrapper = pkgs.writeShellScript "claude-wrapper" ''
     exec ${pkgs.claude-code}/bin/claude "$@"
   '';
@@ -537,6 +631,11 @@ in
             services.gnome.gnome-keyring.enable = true;
         '';
 
+    home.file = lib.mkMerge (
+      (map (skill: { ${skill.name} = skill.value; }) generateLanguageSkills)
+      ++ (map (prompt: { ${prompt.name} = prompt.value; }) generateLanguagePrompts)
+    );
+
     xdg.configFile = lib.mkMerge (
       [
         (lib.optionalAttrs cfg.includeAgentInstructions {
@@ -553,6 +652,7 @@ in
           };
         }
       ) langsCfg.languages)
+      ++ (map (prompt: { ${prompt.name} = prompt.value; }) generateUserPrompts)
     );
 
     programs.vscode = {

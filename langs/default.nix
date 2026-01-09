@@ -180,6 +180,29 @@ let
     };
   };
 
+  commandType = lib.types.submodule {
+    options = {
+      description = lib.mkOption {
+        type = lib.types.str;
+        description = "Brief command description (shown in help/autocomplete)";
+      };
+      prompt = lib.mkOption {
+        type = lib.types.str;
+        description = "The prompt content/instructions";
+      };
+      allowedTools = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Tools allowed for Claude Code (e.g., Bash(cargo:*), Read(//))";
+      };
+      argumentHint = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Hint for expected arguments (e.g., <file> [pattern])";
+      };
+    };
+  };
+
   languageType = lib.types.submodule {
     options = {
       enable = lib.mkOption {
@@ -208,6 +231,11 @@ let
         type = lib.types.listOf lib.types.str;
         default = [ ];
         description = "AI agent instructions for this language";
+      };
+      commands = lib.mkOption {
+        type = lib.types.attrsOf commandType;
+        default = { };
+        description = "Language-specific commands/prompts shared between Claude Code and VSCode Copilot";
       };
       terminalCommands = lib.mkOption {
         type = lib.types.attrsOf terminalCommandType;
