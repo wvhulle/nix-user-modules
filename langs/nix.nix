@@ -42,7 +42,11 @@ in
     nixd = {
       package = pkgs.nixd;
       # command = "nixd";
-      args = [ "--semantic-tokens=true" ];
+      args = [
+        "--inlay-hints"
+        "--semantic-tokens=true"
+        # "--log=verbose" # In case there are issues
+      ];
       config.nixd = {
         nixpkgs.expr = "import ${myFlake}.inputs.nixpkgs { }";
         formatting.command = [ "${lib.getExe pkgs.nixfmt-rfc-style}" ];

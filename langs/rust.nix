@@ -76,6 +76,11 @@
             "clippy::pedantic"
             "-W"
             "clippy::nursery"
+            "-W"
+            "clippy::absolute_paths"
+            "-W"
+            "clippy::redundant_pub_crate"
+
           ];
         };
         procMacro.enable = true;
