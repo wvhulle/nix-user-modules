@@ -162,7 +162,7 @@ def time-to-hours []: string -> float {
 
 # Calculate smooth transition progress using cosine interpolation
 def smooth-step [progress: float]: nothing -> float {
-  (1.0 - (($progress * $PI) | $math.cos)) / 2.0
+  (1.0 - (($progress * $PI) | math cos)) / 2.0
 }
 
 # Calculate brightness based on solar position

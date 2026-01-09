@@ -153,6 +153,6 @@
     pkgs.rustup
     pkgs.openssl
     pkgs.pkg-config
-    pkgs.entr
+    pkgs.entr # Nu's builtin `watch` command can also do this
   ];
 }

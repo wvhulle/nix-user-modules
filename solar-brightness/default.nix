@@ -110,7 +110,6 @@ in
         StandardError = "journal";
         LogExtraFields = [
           "SERVICE_CONTEXT=solar-brightness"
-          "HARDENING_NOTE=ProtectHome=read-only requires ReadWritePaths for caches"
         ];
         Environment = [
           "PATH=${
