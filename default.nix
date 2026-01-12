@@ -13,7 +13,6 @@ _: {
     ./langs
     ./nvim
     ./nushell
-    ./starship-extended.nix
     ./topiary.nix
     ./typography.nix
     ./typos.nix
