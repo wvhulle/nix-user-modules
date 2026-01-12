@@ -23,16 +23,16 @@ export def navi_widget [] {
 }
 
 export-env {
-  const nav_keybinding = {
-    name: "navi"
+  const KEYBINDING = {
+    name: navi
     modifier: control
     keycode: char_s
     mode: [emacs vi_normal vi_insert]
     event: {
       send: executehostcommand
-      cmd: "navi_widget"
+      cmd: navi_widget
     }
   }
 
-  $env.config.keybindings = ($env.config.keybindings | append $nav_keybinding)
+  $env.config.keybindings ++= [$KEYBINDING]
 }

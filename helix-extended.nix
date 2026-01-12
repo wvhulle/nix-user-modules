@@ -123,6 +123,12 @@ in
             S-tab = "move_parent_node_start";
             S-l = ":buffer-next";
             S-h = ":buffer-previous";
+            "C-l" = [
+              ":write-all"
+              ":run-shell-command zellij run --in-place -c -- lazygit -p %sh{dirname %{buffer_name}}"
+              ":redraw"
+              ":reload-all"
+            ];
             space = {
               i = {
                 c = ":toggle inline-diagnostics.cursor-line hint disable";

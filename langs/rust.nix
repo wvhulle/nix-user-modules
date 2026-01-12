@@ -53,6 +53,7 @@
         cargo = {
           allFeatures = true;
           allTargets = true;
+          sysroot = "discover";
         };
         rustfmt = {
           rangeFormatting.enable = true;
@@ -88,6 +89,12 @@
     };
     typos-lsp = typosServer;
     ast-grep-lsp = astGrepServer;
+    assert-lsp = {
+      command = "assert-lsp";
+      config = {
+
+      };
+    };
   };
 
   debugger = {
@@ -158,6 +165,5 @@
     pkgs.rustup
     pkgs.openssl
     pkgs.pkg-config
-    pkgs.entr # Nu's builtin `watch` command can also do this
   ];
 }

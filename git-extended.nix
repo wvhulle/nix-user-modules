@@ -44,7 +44,6 @@ in
     defaultEditor = lib.mkOption {
       type = lib.types.package;
       default = pkgs.helix;
-      defaultText = lib.literalExpression "pkgs.helix";
       description = "Default editor for git commits";
     };
 

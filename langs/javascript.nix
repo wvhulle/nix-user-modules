@@ -22,7 +22,10 @@
   };
 
   servers = {
-    typescript.package = pkgs.typescript-language-server;
+    typescript = {
+      package = pkgs.typescript-language-server;
+      name = "ts_ls";
+    };
 
     eslint = {
       package = pkgs.vscode-langservers-extracted;

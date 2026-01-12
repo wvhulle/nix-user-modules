@@ -57,7 +57,10 @@ in
       };
     };
 
-    nil.package = pkgs.nil;
+    nil = {
+      package = pkgs.nil;
+      name = "nil_ls";
+    };
     typos-lsp = typosServer;
     ast-grep-lsp = astGrepServer;
   };

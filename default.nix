@@ -11,6 +11,7 @@ _: {
     ./keyboard-action
     ./konsole-extended.nix
     ./langs
+    ./nvim
     ./nushell
     ./topiary.nix
     ./typography.nix

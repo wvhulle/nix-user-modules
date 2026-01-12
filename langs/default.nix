@@ -9,15 +9,25 @@ let
   cfg = config.programs.languages;
 
   # Common server configurations
-  typosServer.package = pkgs.typos-lsp;
+  typosServer = {
+    package = pkgs.typos-lsp;
+    name = "typos_lsp";
+  };
 
   astGrepServer = {
     package = pkgs.ast-grep;
     args = [ "lsp" ];
+    name = "ast_grep";
   };
 
   # Import all language definitions
   defaultLanguages = {
+    yaml = {
+      servers.yaml-language-server = {
+        package = pkgs.yaml-language-server;
+        name = "yamlls";
+      };
+    };
     rust = import ./rust.nix {
       inherit
         lib
@@ -76,7 +86,7 @@ let
   );
 
   serverType = lib.types.submodule (
-    { config, ... }:
+    { config, name, ... }:
     {
       options = {
         enable = lib.mkOption {
@@ -98,6 +108,11 @@ let
         config = lib.mkOption {
           type = lib.types.attrs;
           default = { };
+        };
+        name = lib.mkOption {
+          type = lib.types.str;
+          default = lib.replaceStrings [ "-" ] [ "_" ] name;
+          description = "Canonical server name for editors (defaults to attribute name with dashes replaced by underscores)";
         };
       };
       config.command = lib.mkIf (config.package != null) (lib.mkDefault (lib.getExe config.package));

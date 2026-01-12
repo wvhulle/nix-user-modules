@@ -119,6 +119,12 @@ in
           light = "eiffel";
         };
 
+        neovim = {
+          dark = "catppuccin-mocha";
+          light = "catppuccin-latte";
+          script = ./neovim-theme.nu;
+        };
+
         claude-code = {
           dark = "dark";
           light = "light";
