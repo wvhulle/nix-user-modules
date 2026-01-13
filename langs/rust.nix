@@ -11,6 +11,7 @@
   extensions = [ "rs" ];
   instructions = [
     "Use extension traits to group together related methods that are always called on the same (first) argument type."
+    "Never add new code using `anyhow`."
   ];
 
   commands = {
@@ -58,9 +59,9 @@
         rustfmt = {
           rangeFormatting.enable = true;
           extraArgs = [
-            "--unstable-features"
             "--config"
             (lib.concatStringsSep "," [
+              "unstable_features=true"
               "group_imports=StdExternalCrate"
               "imports_granularity=Crate"
               "use_field_init_shorthand=true"

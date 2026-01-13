@@ -1,6 +1,6 @@
 {
   pkgs,
-  typosServer,
+  harper-ls,
   astGrepServer,
 }:
 
@@ -26,7 +26,7 @@
         ];
       };
     };
-    typos-lsp = typosServer;
+    inherit harper-ls;
     ast-grep-lsp = astGrepServer;
   };
   compiler.package = pkgs.typst;

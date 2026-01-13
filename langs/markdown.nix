@@ -1,4 +1,7 @@
-{ pkgs, typosServer }:
+{
+  pkgs,
+  harper-ls,
+}:
 
 {
   scope = "source.markdown";
@@ -15,7 +18,8 @@
     ];
   };
   servers = {
-    typos-lsp = typosServer;
+    inherit harper-ls;
+    # typos-lsp = typosServer;
     # marksman = {
     #   package = pkgs.marksman;
     # };

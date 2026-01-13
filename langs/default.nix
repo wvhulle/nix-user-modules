@@ -20,6 +20,11 @@ let
     name = "ast_grep";
   };
 
+  harper-ls = {
+    command = "harper-ls";
+    args = [ "--stdio" ];
+  };
+
   # Import all language definitions
   defaultLanguages = {
     yaml = {
@@ -28,6 +33,7 @@ let
         name = "yamlls";
       };
     };
+
     rust = import ./rust.nix {
       inherit
         lib
@@ -47,9 +53,9 @@ let
         astGrepServer
         ;
     };
-    nushell = import ./nushell.nix { inherit pkgs typosServer; };
-    typst = import ./typst.nix { inherit pkgs typosServer astGrepServer; };
-    markdown = import ./markdown.nix { inherit pkgs typosServer; };
+    nushell = import ./nushell.nix { inherit pkgs harper-ls; };
+    typst = import ./typst.nix { inherit pkgs harper-ls astGrepServer; };
+    markdown = import ./markdown.nix { inherit pkgs harper-ls; };
     lean = import ./lean.nix { inherit pkgs; };
     sh = import ./sh.nix { };
     nickel = import ./nickel.nix { inherit pkgs; };

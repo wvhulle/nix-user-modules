@@ -1,4 +1,4 @@
-{ pkgs, typosServer }:
+{ pkgs, harper-ls }:
 
 {
   scope = "source.nu";
@@ -29,7 +29,7 @@
       package = pkgs.nu-lint;
       args = [ "--lsp" ];
     };
-    inherit typosServer;
+    inherit harper-ls;
   };
   additionalPackages = [ pkgs.nu-lint ];
 }
