@@ -72,18 +72,19 @@
         };
         check = {
           command = "clippy";
-          extraArgs = [
-            "--"
-            "-W"
-            "clippy::pedantic"
-            "-W"
-            "clippy::nursery"
-            "-W"
-            "clippy::absolute_paths"
-            "-W"
-            "clippy::redundant_pub_crate"
+          # Keep disabled if you want to have clippy configured per project
+          # extraArgs = [
+          #   "--"
+          #   "-W"
+          #   "clippy::pedantic"
+          #   "-W"
+          #   "clippy::nursery"
+          #   "-W"
+          #   "clippy::absolute_paths"
+          #   "-W"
+          #   "clippy::redundant_pub_crate"
 
-          ];
+          # ];
         };
         procMacro.enable = true;
       };
