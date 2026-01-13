@@ -31,5 +31,4 @@
     };
     inherit harper-ls;
   };
-  additionalPackages = [ pkgs.nu-lint ];
 }
