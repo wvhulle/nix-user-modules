@@ -83,14 +83,14 @@ in
             focus-lost = true;
             after-delay = {
               enable = true;
-              timeout = 200;
+              timeout = 500;
             };
           };
           bufferline = "multiple";
           indent-guides = {
             render = true;
           };
-          end-of-line-diagnostics = "hint";
+          end-of-line-diagnostics = "info";
           inline-diagnostics = {
             cursor-line = "disable";
             other-lines = "disable";

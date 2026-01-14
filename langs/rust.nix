@@ -46,7 +46,7 @@
     rust-analyzer = {
       # package = pkgs.rust-analyzer;
       config = {
-        cachePriming.enable = true;
+        cachePriming.enable = true; # Disabled since it may cause slow downs
         lens.references.method.enable = true;
         imports.preferNoStd = false; # Only enable for embedded, will cause errors when writing std macro's otherwise.
         completion.postfix.enable = false;
@@ -91,12 +91,13 @@
     };
     typos-lsp = typosServer;
     ast-grep-lsp = astGrepServer;
-    assert-lsp = {
-      command = "assert-lsp";
-      config = {
+    # TODO switch to backtrace-ls
+    # assert-lsp = {
+    #   command = "assert-lsp";
+    #   config = {
 
-      };
-    };
+    #   };
+    # };
   };
 
   debugger = {

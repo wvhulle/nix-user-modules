@@ -28,6 +28,11 @@ let
   # Import all language definitions
   defaultLanguages = {
     yaml = {
+      scope = "source.yaml";
+      extensions = [
+        "yaml"
+        "yml"
+      ];
       servers.yaml-language-server = {
         package = pkgs.yaml-language-server;
         name = "yamlls";
