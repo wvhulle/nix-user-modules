@@ -90,7 +90,7 @@ in
           indent-guides = {
             render = true;
           };
-          end-of-line-diagnostics = "info";
+          end-of-line-diagnostics = "disable"; # TODO: Find a way to only show hints inline, long diagnostics become unreadable inline
           inline-diagnostics = {
             cursor-line = "disable";
             other-lines = "disable";

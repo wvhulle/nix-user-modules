@@ -44,13 +44,16 @@
 
   servers = {
     rust-analyzer = {
-      # package = pkgs.rust-analyzer;
+      # You probably never want to hard-code the rust-analyzer version to Nix since Rust toolchains are rolling
+      # command = pkgs.lib.getExe pkgs.rust-analyzer;
       config = {
         cachePriming.enable = true; # Disabled since it may cause slow downs
         lens.references.method.enable = true;
         imports.preferNoStd = false; # Only enable for embedded, will cause errors when writing std macro's otherwise.
         completion.postfix.enable = false;
-        diagnostics.experimental.enable = true;
+        diagnostics = {
+          enable = false; # Bug in Rust-analyzer flags used variables with `unused_variables` violation, just use the Clippy diagnostics configured with check.command.
+        };
         cargo = {
           allFeatures = true;
           allTargets = true;
