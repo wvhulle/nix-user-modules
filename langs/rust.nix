@@ -2,7 +2,7 @@
   lib,
   pkgs,
   config,
-  typosServer,
+  harper-ls,
   astGrepServer,
 }:
 
@@ -12,6 +12,8 @@
   instructions = [
     "Use extension traits to group together related methods that are always called on the same (first) argument type."
     "Never add new code using `anyhow`."
+    "Never use anonymous tuples in return type of function signatures, use structs."
+    "Simplify code for readability after unit tests succeed."
   ];
 
   commands = {
@@ -52,6 +54,7 @@
         imports.preferNoStd = false; # Only enable for embedded, will cause errors when writing std macro's otherwise.
         completion.postfix.enable = false;
         diagnostics = {
+          disabled = [ "unused_variables" ];
           enable = false; # Bug in Rust-analyzer flags used variables with `unused_variables` violation, just use the Clippy diagnostics configured with check.command.
         };
         cargo = {
@@ -92,7 +95,7 @@
         procMacro.enable = true;
       };
     };
-    typos-lsp = typosServer;
+    inherit harper-ls;
     ast-grep-lsp = astGrepServer;
     # TODO switch to backtrace-ls
     # assert-lsp = {

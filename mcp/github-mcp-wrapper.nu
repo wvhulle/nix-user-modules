@@ -3,7 +3,7 @@
 # Wrapper script for GitHub MCP server
 # Sets GITHUB_PERSONAL_ACCESS_TOKEN from gh CLI auth
 def main [
-  github_mcp_bin: string  # Path to github-mcp-server binary
+  github_mcp_bin: string # Path to github-mcp-server binary
 ] {
   let token = (gh auth token | str trim)
 
@@ -12,7 +12,7 @@ def main [
     exit 1
   }
 
-  with-env { GITHUB_PERSONAL_ACCESS_TOKEN: $token } {
+  with-env {GITHUB_PERSONAL_ACCESS_TOKEN: $token} {
     ^$github_mcp_bin stdio
   }
 }

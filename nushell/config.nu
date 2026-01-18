@@ -11,3 +11,4 @@ $env.config.float_precision = 4
 # Aliases
 alias home-switch = nh home switch $"/home/($env.USER)/.config/nixos" --show-trace -b backup
 alias system-switch = nh os switch $"/home/($env.USER)/.config/nixos" --show-trace
+alias sg = ast-grep

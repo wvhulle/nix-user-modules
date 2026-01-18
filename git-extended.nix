@@ -246,9 +246,10 @@ in
     };
 
     # Install mergiraf package when enabled
-    home.packages = [
+    home.packages = with pkgs; [
       pkgs.mergiraf
       pkgs.delta
+      convco
     ];
 
     # Configure global gitattributes for mergiraf

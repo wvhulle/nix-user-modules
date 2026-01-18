@@ -23,6 +23,7 @@ let
   harper-ls = {
     command = "harper-ls";
     args = [ "--stdio" ];
+    config = { };
   };
 
   # Import all language definitions
@@ -44,7 +45,7 @@ let
         lib
         pkgs
         config
-        typosServer
+        harper-ls
         astGrepServer
         ;
     };
@@ -58,7 +59,7 @@ let
         astGrepServer
         ;
     };
-    nushell = import ./nushell.nix { inherit pkgs harper-ls; };
+    nu = import ./nushell.nix { inherit pkgs harper-ls; };
     typst = import ./typst.nix { inherit pkgs harper-ls astGrepServer; };
     markdown = import ./markdown.nix { inherit pkgs harper-ls; };
     lean = import ./lean.nix { inherit pkgs; };
@@ -299,25 +300,31 @@ let
     };
   };
 
-  enabledLanguages = lib.attrValues (lib.filterAttrs (_: l: l.enable) cfg.languages);
+  enabledLanguages = lib.filterAttrs (_: l: l.enable) cfg.languages;
+  enabledLanguagesList = lib.attrValues enabledLanguages;
 
   # Helper to collect enabled tools from all languages
-  collectTools = field: predicate: lib.filter predicate (map (lang: lang.${field}) enabledLanguages);
+  collectTools =
+    field: predicate: lib.filter predicate (map (lang: lang.${field}) enabledLanguagesList);
 
   allFormatters = collectTools "formatter" (f: f != null && f.enable);
   allLinters = collectTools "linter" (l: l != null && l.enable);
   allCompilers = collectTools "compiler" (c: c != null && c.enable);
   allDebuggers = collectTools "debugger" (d: d != null && d.enable);
-  allAdditionalPaths = lib.concatMap (lang: lang.additionalPaths) enabledLanguages;
-  allAdditionalPackages = lib.concatMap (lang: lang.additionalPackages) enabledLanguages;
-  allLSPServers = lib.concatMap (
+  allAdditionalPaths = lib.concatMap (lang: lang.additionalPaths) enabledLanguagesList;
+  allAdditionalPackages = lib.concatMap (lang: lang.additionalPackages) enabledLanguagesList;
+  allServers = lib.foldl' (
+    acc: lang: acc // lib.filterAttrs (_: s: s.enable) lang.servers
+  ) { } enabledLanguagesList;
+
+  allLSPServerPackages = lib.concatMap (
     lang:
     lib.pipe lang.servers [
       (lib.filterAttrs (_: s: s.enable && s.package != null))
       lib.attrValues
       (map (s: s.package))
     ]
-  ) enabledLanguages;
+  ) enabledLanguagesList;
 in
 {
   options.programs.languages = {
@@ -327,6 +334,13 @@ in
       type = lib.types.attrsOf languageType;
       default = defaultLanguages;
       description = "Language toolchain configurations";
+    };
+
+    servers = lib.mkOption {
+      type = lib.types.attrsOf serverType;
+      readOnly = true;
+      default = allServers;
+      description = "All enabled language servers (computed)";
     };
   };
 
@@ -351,7 +365,7 @@ in
         ++ (map (c: c.package) allCompilers)
         ++ (map (d: d.package) allDebuggers)
         ++ allAdditionalPackages
-        ++ allLSPServers;
+        ++ allLSPServerPackages;
     };
   };
 }

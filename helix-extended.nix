@@ -3,47 +3,7 @@
 let
   cfg = config.programs.helix-extended;
   langCfg = config.programs.languages;
-
-  # Well-known language servers that Helix can find by name without explicit path
-  builtinServers = [
-    "rust-analyzer"
-    "clangd"
-    "gopls"
-    "pylsp"
-    "typescript-language-server"
-    "vscode-css-language-server"
-    "vscode-html-language-server"
-    "vscode-json-language-server"
-    "yaml-language-server"
-    "zls"
-  ];
-
-  getFormatterCommand =
-    formatter: if formatter.command != null then formatter.command else lib.getExe formatter.package;
-
-  getLangServers = langName: lib.attrNames (langCfg.languages.${langName}.servers or { });
-
-  getLangFormatter = langName: langCfg.languages.${langName}.formatter or null;
-
-  getLangDebugger = langName: langCfg.languages.${langName}.debugger or null;
-
-  # Get the command for a language server with proper fallbacks
-  getServerCommand =
-    name: server:
-    if server.command != null then
-      server.command
-    else if lib.elem name builtinServers then
-      name
-    else
-      null;
-
-  # Check if a server config is valid (has at least a command or config)
-  isValidServerConfig =
-    name: server:
-    let
-      cmd = getServerCommand name server;
-    in
-    cmd != null || server.config != { };
+  enabledLanguages = lib.filterAttrs (_: l: l.enable) langCfg.languages;
 in
 {
   options.programs.helix-extended = {
@@ -151,78 +111,47 @@ in
         };
       };
 
-      languages = {
-        language =
-          let
-            # Map from languages.nix names to helix language identifiers
-            langNameMap = {
-              nushell = "nu";
+      languages =
+        let
+          toHelixLanguage =
+            name: lang:
+            {
+              inherit name;
+              auto-format = true;
+              language-servers = lib.attrNames (lang.servers or { });
+              file-types = if lang.fileTypes != [ ] then lang.fileTypes else lang.extensions;
+            }
+            // lib.optionalAttrs (lang.scope != null) { inherit (lang) scope; }
+            // lib.optionalAttrs (lang.roots != [ ]) { inherit (lang) roots; }
+            // lib.optionalAttrs (lang.formatter != null) {
+              formatter = {
+                command = lang.formatter.command or (lib.getExe lang.formatter.package);
+                inherit (lang.formatter) args;
+              };
+            }
+            // lib.optionalAttrs (lang.debugger != null && lang.debugger.enable) {
+              debugger = {
+                inherit (lang.debugger)
+                  name
+                  transport
+                  command
+                  templates
+                  ;
+              }
+              // lib.optionalAttrs (lang.debugger.args != [ ]) { inherit (lang.debugger) args; };
             };
 
-            mkLanguageConfig =
-              langName: langConfig:
-              let
-                helixLangName = langNameMap.${langName} or langName;
-                formatter = getLangFormatter langName;
-                debugger = getLangDebugger langName;
-              in
-              {
-                name = helixLangName;
-                auto-format = true;
-                language-servers = getLangServers langName;
-              }
-              // lib.optionalAttrs (langConfig.scope != null) { inherit (langConfig) scope; }
-              // {
-                # Use fileTypes if specified, otherwise derive from extensions
-                file-types = if langConfig.fileTypes != [ ] then langConfig.fileTypes else langConfig.extensions;
-              }
-              // lib.optionalAttrs (langConfig.roots != [ ]) { inherit (langConfig) roots; }
-              // lib.optionalAttrs (formatter != null) {
-                formatter.command = getFormatterCommand formatter;
-                formatter.args = formatter.args ++ lib.optional (langName == "markdown") helixLangName;
-              }
-              // lib.optionalAttrs (debugger != null && debugger.enable) {
-                debugger = {
-                  inherit (debugger) name transport command;
-                  inherit (debugger) templates;
-                }
-                // lib.optionalAttrs (debugger.args != [ ]) {
-                  inherit (debugger) args;
-                };
-              };
+          toHelixServer =
+            _: server:
+            lib.optionalAttrs (server.command != null) { inherit (server) command; }
+            // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
+            // lib.optionalAttrs (server.config != { }) { inherit (server) config; };
+        in
+        {
+          language = lib.sortOn (l: l.name) (lib.mapAttrsToList toHelixLanguage enabledLanguages);
 
-            enabledLanguages = lib.filterAttrs (_: l: l.enable) langCfg.languages;
-          in
-          lib.sortOn (l: l.name) (lib.mapAttrsToList mkLanguageConfig enabledLanguages);
-
-        language-server =
-          let
-            mkServerConfig =
-              name: server:
-              let
-                cmd = getServerCommand name server;
-              in
-              lib.nameValuePair name (
-                lib.optionalAttrs (cmd != null) { command = cmd; }
-                // lib.optionalAttrs (server.args != [ ]) {
-                  inherit (server) args;
-                }
-                // lib.optionalAttrs (server.config != { }) {
-                  inherit (server) config;
-                }
-              );
-
-            allServers = lib.foldl' (acc: langCfg: acc // langCfg.servers) { } (
-              lib.attrValues (lib.filterAttrs (_: l: l.enable) langCfg.languages)
-            );
-
-            enabledServers = lib.filterAttrs (_: s: s.enable) allServers;
-
-            # Filter out servers that would generate empty/invalid configs
-            validServers = lib.filterAttrs (name: server: isValidServerConfig name server) enabledServers;
-          in
-          lib.mapAttrs' mkServerConfig validServers;
-      };
+          language-server = lib.mapAttrs toHelixServer langCfg.servers;
+        };
     };
 
     programs.languages.enable = true;

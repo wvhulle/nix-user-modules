@@ -32,5 +32,9 @@ in
     };
 
     home.packages = [ pkgs.libnotify ];
+
+    home.sessionVariables = {
+      REEDLINE_LS = "nu-lint";
+    };
   };
 }

@@ -15,7 +15,6 @@
       "nu"
     ];
   };
-  linter.package = pkgs.nu-lint;
   servers = {
     nu = {
       package = pkgs.nushell;
@@ -26,7 +25,7 @@
       ];
     };
     nu-lint = {
-      package = pkgs.nu-lint;
+      command = "nu-lint";
       args = [ "--lsp" ];
     };
     inherit harper-ls;

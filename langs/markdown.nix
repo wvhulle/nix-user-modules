@@ -15,6 +15,7 @@
     args = [
       "fmt"
       "--stdin"
+      "markdown"
     ];
   };
   servers = {
