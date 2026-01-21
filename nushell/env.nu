@@ -9,6 +9,6 @@ path add ($env.HOME | path join ".nix-profile" "bin")
 $env.NU_LIB_DIRS = [($nu.default-config-dir | path join 'nu-scripts')]
 
 $env.LC_ALL = "en_US.UTF-8"
-$env.DOCKER_HOST = $"unix://($env.XDG_RUNTIME_DIR)/podman/podman.sock"
+# $env.DOCKER_HOST = $"unix://($env.XDG_RUNTIME_DIR)/podman/podman.sock" # Should ideally be only set in containers system module
 $env.NU_PLUGIN_DIRS = [($env.HOME | path join '.cargo' 'bin')]
 $env.LD_LIBRARY_PATH = $"($env.LD_LIBRARY_PATH? | default ''):/run/current-system/sw/lib"
