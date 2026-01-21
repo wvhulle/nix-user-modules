@@ -86,7 +86,7 @@ let
         inherit name;
         path = pkgs.writeTextDir "SKILL.md" ''
           ---
-          name: ${name}-guidelines
+          name: ${name}
           description: Guidelines for developing in `${name}`
           ---
 
@@ -119,7 +119,7 @@ let
       value = {
         text = ''
           ---
-          name: ${name}-guidelines
+          name: ${name}
           description: Guidelines for developing in `${name}`
           ---
 
