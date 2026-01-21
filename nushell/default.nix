@@ -7,6 +7,21 @@
 
 let
   cfg = config.programs.nushell-extended;
+  langsCfg = config.programs.languages;
+
+  # Collect additionalPaths from all enabled languages
+  languagePaths =
+    if langsCfg.enable then
+      lib.pipe langsCfg.languages [
+        (lib.filterAttrs (_: l: l.enable))
+        lib.attrValues
+        (lib.concatMap (l: l.additionalPaths))
+      ]
+    else
+      [ ];
+
+  # Generate path add commands for language-specific paths
+  pathAddCommands = lib.concatMapStringsSep "\n" (p: ''path add "${p}"'') languagePaths;
 in
 {
   options.programs.nushell-extended = {
@@ -26,6 +41,7 @@ in
         enable = true;
 
         envFile.source = ./env.nu;
+        extraEnv = lib.mkIf (languagePaths != [ ]) pathAddCommands;
         configFile.source = ./config.nu;
         loginFile.source = ./login.nu;
       };
