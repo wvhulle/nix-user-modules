@@ -58,7 +58,7 @@ let
       serverName = server.name;
       cmd = getServerCommand attrName server;
       cmdParts = [ cmd ] ++ server.args;
-      cmdLua = ''cmd = { ${lib.concatMapStringsSep ", " (s: ''"${s}"'') cmdParts} },'';
+      cmdLua = "cmd = { ${lib.concatMapStringsSep ", " (s: ''"${s}"'') cmdParts} },";
 
       rawSettings = server.config;
       settings =
