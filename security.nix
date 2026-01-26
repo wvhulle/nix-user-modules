@@ -22,6 +22,10 @@
     pinentry.package = pkgs.pinentry-qt;
   };
 
+  home.packages = [
+    pkgs.gpg-tui
+  ];
+
   programs.ssh = {
     enable = true;
     enableDefaultConfig = false;

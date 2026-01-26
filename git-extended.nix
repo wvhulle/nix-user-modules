@@ -134,6 +134,8 @@ in
             name = cfg.userName;
           };
 
+          gpg.format = lib.mkIf (cfg.signing.key != null && lib.hasPrefix "ssh-" cfg.signing.key) "ssh";
+
           branch.sort = "-committerdate";
           tag.sort = "version:refname";
           init.defaultBranch = "main";
