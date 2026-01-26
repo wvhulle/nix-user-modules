@@ -135,6 +135,12 @@ in
           dark = "GitHub Dark";
           light = "GitHub Light";
         };
+
+        zed = {
+          dark = "One Dark";
+          light = "One Light";
+          # No script needed - Zed uses theme.mode = "system" to follow OS preference
+        };
       };
       description = "Applications with dark/light theme support";
     };

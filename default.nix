@@ -13,9 +13,11 @@ _: {
     ./langs
     ./nvim
     ./nushell
+    ./security.nix
     ./topiary.nix
     ./typography.nix
     ./typos.nix
     ./vscode-extended.nix
+    ./zed-extended.nix
   ];
 }

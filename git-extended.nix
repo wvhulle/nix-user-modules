@@ -247,8 +247,9 @@ in
 
     # Install mergiraf package when enabled
     home.packages = with pkgs; [
-      pkgs.mergiraf
-      pkgs.delta
+      mergiraf
+      delta
+      git-lfs
       convco
     ];
 

@@ -8,13 +8,18 @@
     "Run nu-lint to see style issues in Nu scripts."
   ];
   formatter = {
-    package = pkgs.topiary;
-    args = [
-      "format"
-      "--language"
-      "nu"
-    ];
+    package = pkgs.nufmt;
+    args = [ "--stdin" ];
   };
+  # Alternative: topiary formatter
+  # formatter = {
+  #   package = pkgs.topiary;
+  #   args = [
+  #     "format"
+  #     "--language"
+  #     "nu"
+  #   ];
+  # };
   servers = {
     nu = {
       package = pkgs.nushell;
