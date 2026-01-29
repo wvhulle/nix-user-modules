@@ -36,7 +36,9 @@ let
         pkgs.coreutils
         pkgs.glib
         pkgs.systemd
+        pkgs.dbus
         pkgs.kdePackages.plasma-workspace
+        pkgs.kdePackages.kconfig
       ];
       xdgDataDirs = pkgs.lib.concatStringsSep ":" [
         "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
@@ -89,8 +91,8 @@ in
         };
 
         plasma = {
-          dark = "org.kde.breezedark.desktop";
-          light = "org.kde.breeze.desktop";
+          dark = "BreezeDark";
+          light = "BreezeLight";
           script = ./plasma-theme.nu;
         };
 
@@ -164,6 +166,17 @@ in
         startupNotify = false;
       })
     ];
+
+    # Configure xdg-desktop-portal to use darkman for Settings (color-scheme)
+    # This provides consistent portal signals for Firefox and other apps
+    xdg.portal = {
+      enable = true;
+      extraPortals = [ pkgs.kdePackages.xdg-desktop-portal-kde ];
+      config.common = {
+        default = [ "kde" ];
+        "org.freedesktop.impl.portal.Settings" = [ "darkman" ];
+      };
+    };
 
     services.darkman = {
       enable = true;

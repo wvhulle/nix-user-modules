@@ -1,17 +1,16 @@
 #!/usr/bin/env nu
 
-# Switch Plasma theme
+# Switch Plasma color scheme
 export def main [
-  lookandfeel: string
-
+  colorscheme: string
   mode?: string
 ] {
-  print $"Applying Plasma lookandfeel: ($lookandfeel)"
+  print $"Applying Plasma color scheme: ($colorscheme)"
 
   try {
-    plasma-apply-lookandfeel --apply $lookandfeel
-    print $"Successfully applied lookandfeel ($lookandfeel)"
+    ^plasma-apply-colorscheme $colorscheme
+    print $"Successfully applied color scheme ($colorscheme)"
   } catch {|err|
-    print $"Error applying lookandfeel: ($err.msg)"
+    print $"Error applying color scheme: ($err.msg)"
   }
 }

@@ -187,7 +187,7 @@ let
     };
 
     window = {
-      autoDetectColorScheme = true;
+      autoDetectColorScheme = false;
 
       titleBarStyle = "native";
       commandCenter = false;
@@ -196,8 +196,7 @@ let
 
     workbench = {
       list.smoothScrolling = true;
-      preferredDarkColorTheme = config.programs.darkMode.apps.vscode.dark;
-      preferredLightColorTheme = config.programs.darkMode.apps.vscode.light;
+      colorTheme = config.programs.darkMode.apps.vscode.dark;
       editor = {
         enablePreview = false;
         highlightModifiedTabs = true;

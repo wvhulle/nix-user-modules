@@ -177,6 +177,7 @@ in
           difftool = {
             prompt = false;
             meld.cmd = ''${lib.getExe pkgs.meld} "$LOCAL" "$REMOTE"'';
+            delta.cmd = ''git diff --no-ext-diff --no-index "$LOCAL" "$REMOTE" | ${lib.getExe pkgs.delta}'';
           };
 
           delta = {
@@ -210,6 +211,7 @@ in
             aliases = "config --get-regexp alias";
             save = "!git add -A && git commit -m 'SAVEPOINT'";
             meld = "!git difftool -t meld --dir-diff";
+            delta = "difftool -t delta";
           }
           // cfg.additionalAliases;
 
