@@ -16,7 +16,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "sonokai";
+        theme = "modus_vivendi";
 
         editor = {
           completion-replace = true;

@@ -20,14 +20,24 @@
   };
   servers = {
     inherit harper-ls;
-    # typos-lsp = typosServer;
-    # marksman = {
-    #   package = pkgs.marksman;
-    # };
+    mpls = {
+      package = pkgs.mpls;
+      command = "mpls";
+      args = [
+        "--enable-emoji"
+      ];
+    };
+
+    marksman = {
+      package = pkgs.marksman;
+      command = "marksman";
+    };
   };
-  additionalPackages = [
-    pkgs.zola
-    pkgs.presenterm
-    pkgs.markdown-oxide
+  additionalPackages = with pkgs; [
+    zola
+    presenterm
+    markdown-oxide
+    mermaid-cli
+    glow
   ];
 }
