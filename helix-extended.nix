@@ -16,7 +16,7 @@ in
       defaultEditor = true;
 
       settings = {
-        theme = "modus_vivendi";
+        theme = "base16_transparent";
 
         editor = {
           completion-replace = true;
@@ -106,6 +106,7 @@ in
                 :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
               '';
               N = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
+              L = ":echo %sh{${./helix-repo-link.nu} %{buffer_name} %{cursor_line}}";
             };
           };
         };

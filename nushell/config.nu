@@ -7,6 +7,7 @@ $env.config.completions.algorithm = "fuzzy"
 $env.config.use_kitty_protocol = true
 $env.config.filesize.precision = 3
 $env.config.float_precision = 4
+$env.config.table.mode = "light"
 
 # Aliases
 alias home-switch = nh home switch $"/home/($env.USER)/.config/nixos" --show-trace -b backup
