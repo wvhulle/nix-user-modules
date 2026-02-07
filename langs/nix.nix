@@ -1,7 +1,6 @@
 {
   lib,
   pkgs,
-  typosServer,
   astGrepServer,
 }:
 
@@ -61,7 +60,6 @@ in
       package = pkgs.nil;
       name = "nil_ls";
     };
-    typos-lsp = typosServer;
     ast-grep-lsp = astGrepServer;
   };
 

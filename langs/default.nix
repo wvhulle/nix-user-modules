@@ -9,10 +9,10 @@ let
   cfg = config.programs.languages;
 
   # Common server configurations
-  typosServer = {
-    package = pkgs.typos-lsp;
-    name = "typos_lsp";
-  };
+  # typosServer = {
+  #   package = pkgs.typos-lsp;
+  #   name = "typos_lsp";
+  # };
 
   astGrepServer = {
     package = pkgs.ast-grep;
@@ -55,7 +55,6 @@ let
       inherit
         lib
         pkgs
-        typosServer
         astGrepServer
         ;
     };

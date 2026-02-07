@@ -30,6 +30,7 @@ in
           trim-trailing-whitespace = true;
           popup-border = "all";
           line-number = "relative";
+          rulers = [ ];
           # gutters = [
           #   "diff"
           #   "diagnostics"
