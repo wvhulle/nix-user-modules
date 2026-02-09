@@ -9,6 +9,10 @@
     "md"
     "markdown"
   ];
+  mimeTypes = [
+    "text/markdown"
+    "text/x-markdown"
+  ];
   instructions = [ ];
   formatter = {
     package = pkgs.dprint;

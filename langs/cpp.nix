@@ -13,6 +13,12 @@
     "h"
     "hpp"
   ];
+  mimeTypes = [
+    "text/x-c"
+    "text/x-c++src"
+    "text/x-chdr"
+    "text/x-c++hdr"
+  ];
 
   compiler.package = pkgs.clang;
 

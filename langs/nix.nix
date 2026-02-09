@@ -12,6 +12,7 @@ in
 {
   scope = "source.nix";
   extensions = [ "nix" ];
+  mimeTypes = [ "text/x-nix" ];
   instructions = [ ];
 
   terminalCommands = {

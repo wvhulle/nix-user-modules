@@ -6,5 +6,9 @@ _:
     "sh"
     "bash"
   ];
+  mimeTypes = [
+    "application/x-shellscript"
+    "text/x-shellscript"
+  ];
   instructions = [ ];
 }

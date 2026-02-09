@@ -10,6 +10,10 @@
     "mjs"
     "cjs"
   ];
+  mimeTypes = [
+    "application/javascript"
+    "text/javascript"
+  ];
 
   terminalCommands.npm = {
     autoApprove = true;

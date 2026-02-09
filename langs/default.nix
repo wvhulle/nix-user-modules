@@ -34,6 +34,10 @@ let
         "yaml"
         "yml"
       ];
+      mimeTypes = [
+        "text/x-yaml"
+        "application/x-yaml"
+      ];
       servers.yaml-language-server = {
         package = pkgs.yaml-language-server;
         name = "yamlls";
@@ -296,6 +300,11 @@ let
         type = lib.types.listOf lib.types.package;
         default = [ ];
       };
+      mimeTypes = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "MIME types associated with this language";
+      };
     };
   };
 
@@ -324,6 +333,8 @@ let
       (map (s: s.package))
     ]
   ) enabledLanguagesList;
+
+  allMimeTypes = lib.unique (lib.concatMap (lang: lang.mimeTypes) enabledLanguagesList);
 in
 {
   options.programs.languages = {
@@ -340,6 +351,13 @@ in
       readOnly = true;
       default = allServers;
       description = "All enabled language servers (computed)";
+    };
+
+    mimeTypes = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      readOnly = true;
+      default = allMimeTypes;
+      description = "All MIME types from enabled languages";
     };
   };
 

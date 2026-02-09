@@ -9,6 +9,7 @@
 {
   scope = "source.rust";
   extensions = [ "rs" ];
+  mimeTypes = [ "text/x-rust" ];
   instructions = [
     "Use extension traits to group together related methods that are always called on the same (first) argument type."
     "Never add new code using `anyhow`."
