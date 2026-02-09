@@ -84,5 +84,14 @@ in
   additionalPackages = with pkgs; [
     nixpkgs-fmt
     statix
+    shellify
+    nix-init
+    nix-tree
+    nix-diff
+    nix-prefetch-github
+    nix-prefetch-git
+    nixos-option
+    home-manager
+    nh
   ];
 }

@@ -364,14 +364,14 @@ in
   config = lib.mkIf cfg.enable {
     programs.topiary = {
       enable = true;
-      languages.nu = {
-        extensions = [ "nu" ];
-        queryFile = "${pkgs.topiary-nushell-queries}/languages/nu.scm";
-        grammar.source.git = {
-          git = "https://github.com/nushell/tree-sitter-nu.git";
-          rev = "18b7f951e0c511f854685dfcc9f6a34981101dd6";
-        };
-      };
+      # languages.nu = {
+      #   extensions = [ "nu" ];
+      #   # queryFile = "${pkgs.topiary-nushell-queries}/languages/nu.scm";
+      #   # grammar.source.git = {
+      #   #   git = "https://github.com/nushell/tree-sitter-nu.git";
+      #   #   rev = "18b7f951e0c511f854685dfcc9f6a34981101dd6";
+      #   # };
+      # };
     };
 
     home = {

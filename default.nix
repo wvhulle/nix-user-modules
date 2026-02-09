@@ -11,7 +11,8 @@ _: {
     ./keyboard-action
     ./kitty-extended.nix
     ./konsole-extended.nix
-    ./plasma-extended.nix
+    ./kde-apps.nix
+    ./kde-plasma-desktop.nix
     ./langs
     ./nvim
     ./nushell

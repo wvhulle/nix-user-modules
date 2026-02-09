@@ -289,6 +289,10 @@ in
       delta
       git-lfs
       convco
+      gh
+      gh-dash
+      git-cliff
+      meld
     ];
 
     # Configure global gitattributes for mergiraf
