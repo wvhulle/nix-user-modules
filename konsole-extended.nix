@@ -7,7 +7,7 @@
 
 let
   cfg = config.programs.konsole-extended;
-  fontsCfg = config.programs.typography;
+  fontsCfg = config.stylix.fonts;
 in
 {
   options.programs.konsole-extended = {
@@ -52,7 +52,7 @@ in
         inherit colorScheme;
         inherit (cfg) command;
         font = {
-          inherit (fontsCfg.terminal) name;
+          inherit (fontsCfg.monospace) name;
           size = fontsCfg.sizes.terminal;
         };
       }) cfg.profiles;

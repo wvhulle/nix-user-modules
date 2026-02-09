@@ -9,15 +9,18 @@ _: {
     ./git-extended.nix
     ./helix-extended.nix
     ./keyboard-action
+    ./kitty-extended.nix
     ./konsole-extended.nix
+    ./plasma-extended.nix
     ./langs
     ./nvim
     ./nushell
     ./security.nix
+    ./stylix.nix
     ./topiary.nix
-    ./typography.nix
     ./typos.nix
     ./vscode-extended.nix
     ./zed-extended.nix
+    ./zellij-extended.nix
   ];
 }

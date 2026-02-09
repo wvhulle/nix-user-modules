@@ -38,6 +38,11 @@ in
 
   formatter.package = pkgs.nixfmt-rfc-style;
 
+  linter = {
+    package = pkgs.deadnix;
+    args = [ "--fail" ];
+  };
+
   servers = {
     nixd = {
       package = pkgs.nixd;
@@ -60,9 +65,24 @@ in
     nil = {
       package = pkgs.nil;
       name = "nil_ls";
+      config.nil = {
+        diagnostics = {
+          ignored = [ ]; # Empty = show all diagnostics (unused_binding, unused_with, etc.)
+        };
+        nix = {
+          flake = {
+            autoArchive = true;
+            autoEvalInputs = true;
+          };
+        };
+      };
     };
+
     ast-grep-lsp = astGrepServer;
   };
 
-  additionalPackages = [ pkgs.nixpkgs-fmt ];
+  additionalPackages = with pkgs; [
+    nixpkgs-fmt
+    statix
+  ];
 }

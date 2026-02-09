@@ -91,8 +91,10 @@ in
         };
 
         plasma = {
-          dark = "BreezeDark";
-          light = "BreezeLight";
+          # Use Stylix-generated themes from plasma-extended module
+          # These are generated from base16 schemes in ~/.local/share/color-schemes/
+          dark = "stylix-dark";
+          light = "stylix-light";
           script = ./plasma-theme.nu;
         };
 
@@ -109,10 +111,10 @@ in
         };
 
         kitty = {
-          # This is what determines the color of the terminal background
-          # Use underscores for spaces
-          dark = "GitHub_Dark";
-          light = "GitHub_Light";
+          # Use Stylix-generated themes from kitty-extended module
+          # These are generated from base16 schemes in ~/.config/kitty/themes/
+          dark = "stylix-dark";
+          light = "stylix-light";
           script = ./kitty-theme.nu;
         };
 

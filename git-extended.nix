@@ -72,6 +72,40 @@ in
   config = lib.mkIf cfg.enable {
 
     programs = {
+      lazygit =
+        let
+          editor = lib.getExe cfg.defaultEditor;
+          delta = lib.getExe pkgs.delta;
+          difft = lib.getExe pkgs.difftastic;
+        in
+        {
+          enable = true;
+          enableNushellIntegration = true;
+          enableBashIntegration = true;
+          settings = {
+            os = {
+              edit = "${editor} {{filename}}";
+              editAtLine = "${editor} {{filename}}:{{line}}";
+              editAtLineAndWait = "${editor} {{filename}}:{{line}}";
+              openDirInEditor = "${editor} {{dir}}";
+              editInTerminal = true;
+            };
+            git = {
+              overrideGpg = true; # To be able to split commits
+              pagers = [
+                {
+                  pager = "${delta} --paging=never --line-numbers --hyperlinks --navigate";
+                  colorArg = "always";
+                }
+                {
+                  externalDiffCommand = "${difft} --color=always";
+                  pager = "${lib.getExe pkgs.coreutils}/cat";
+                }
+              ];
+            };
+          };
+        };
+
       difftastic = {
         git.enable = true;
         enable = true;

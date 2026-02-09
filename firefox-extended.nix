@@ -280,6 +280,10 @@ let
       archive.enabled = false;
     };
     breakpad.reportURL = "";
+
+    # Follow system color scheme via XDG portal (darkman)
+    # 0=dark, 1=light, 2=system, 3=browser theme
+    layout.css.prefers-color-scheme.content-override = 2;
   };
 in
 {

@@ -21,7 +21,7 @@ in
         editor = {
           completion-replace = true;
           lsp = {
-            display-progress-messages = false;
+            display-progress-messages = true;
             display-inlay-hints = true;
             goto-reference-include-declaration = false;
             snippets = false;

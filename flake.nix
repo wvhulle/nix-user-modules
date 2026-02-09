@@ -18,7 +18,7 @@
       nushell-extended = ./nushell;
       topiary = ./topiary.nix;
       typos = ./typos.nix;
-      typography = ./typography.nix;
+      stylix-extended = ./stylix.nix;
       vscode-extended = ./vscode-extended.nix;
       xdg-autostart-extended = ./xdg-autostart-extended.nix;
     };

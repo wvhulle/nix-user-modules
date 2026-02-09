@@ -9,7 +9,7 @@ let
   cfg = config.programs.vscode-extended;
   agentCfg = config.programs.agents;
   langsCfg = config.programs.languages;
-  fontsCfg = config.programs.typography;
+  fontsCfg = config.stylix.fonts;
 
   capitalize = name: lib.strings.toUpper (lib.substring 0 1 name) + lib.substring 1 (-1) name;
 
@@ -178,8 +178,8 @@ let
     editor = {
       cursorBlinking = "smooth";
       cursorSmoothCaretAnimation = "on";
-      fontFamily = "'${fontsCfg.editor.name}', '${fontsCfg.terminal.name}', monospace";
-      fontSize = fontsCfg.sizes.editor;
+      fontFamily = "'${fontsCfg.monospace.name}', monospace";
+      fontSize = fontsCfg.sizes.applications;
       fontLigatures = true;
       formatOnSave = true;
       smoothScrolling = true;
@@ -207,7 +207,7 @@ let
     };
 
     terminal.integrated = {
-      fontFamily = fontsCfg.terminal.name;
+      fontFamily = fontsCfg.monospace.name;
       fontSize = fontsCfg.sizes.terminal;
       smoothScrolling = true;
       defaultProfile.linux = "bash";
