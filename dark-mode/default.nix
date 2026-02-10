@@ -203,5 +203,12 @@ in
       darkModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "dark" app.dark) cfg.apps;
       lightModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "light" app.light) cfg.apps;
     };
+
+    # Apply current theme immediately after rebuild to pick up new Stylix themes
+    # Toggle twice to force darkman to re-run scripts (it skips if mode unchanged)
+    home.activation.applyTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    '';
   };
 }
