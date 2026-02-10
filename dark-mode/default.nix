@@ -43,6 +43,7 @@ let
       xdgDataDirs = pkgs.lib.concatStringsSep ":" [
         "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
         "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
+        "${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}"
       ];
     in
     pkgs.writeShellScript "theme-${name}-${mode}" (
@@ -144,6 +145,15 @@ in
           dark = "One Dark";
           light = "One Light";
           # No script needed - Zed uses theme.mode = "system" to follow OS preference
+        };
+
+        zellij = {
+          # Use Stylix-generated themes from zellij-extended module
+          # Note: Zellij doesn't support runtime theme switching for existing sessions
+          # The script updates a marker file; new sessions will use the correct theme
+          dark = "stylix-dark";
+          light = "stylix-light";
+          script = ./zellij-theme.nu;
         };
       };
       description = "Applications with dark/light theme support";

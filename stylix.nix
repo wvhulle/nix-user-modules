@@ -11,14 +11,6 @@ let
   themes = import ./base16-themes.nix { inherit pkgs; };
   activePreset = fontPresets.${cfg.fontPreset};
   themeNames = builtins.attrNames themes;
-
-  # Fetch tinted-shell for base16-shell-preview
-  tinted-shell = pkgs.fetchFromGitHub {
-    owner = "tinted-theming";
-    repo = "tinted-shell";
-    rev = "main";
-    hash = "sha256-XaHxsVbeJwwuJnN2gc+HSqLoCMz6jnJoB/zpFB3gXRA=";
-  };
 in
 {
   # Re-export themes for autocomplete in user config
@@ -123,6 +115,7 @@ in
         neovim.enable = false;
         vscode.enable = false;
         zed.enable = false;
+        zellij.enable = false;
 
         firefox.enable = false;
 
@@ -146,11 +139,11 @@ in
         activePreset.sansSerif.package
         activePreset.serif.package
         pkgs.noto-fonts-color-emoji
-        pkgs.base16-shell-preview
       ]
     );
 
-    home.sessionVariables.BASE16_SHELL = "${tinted-shell}";
+    # For base16-preview.nu to locate theme YAML files
+    home.sessionVariables.BASE16_THEMES = "${pkgs.base16-schemes}/share/themes";
 
     programs.plasma.fonts = lib.mkIf cfg.plasma.enable {
       general = {
