@@ -204,9 +204,12 @@ in
       lightModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "light" app.light) cfg.apps;
     };
 
-    # Apply current theme immediately after rebuild to pick up new Stylix themes
-    # Toggle twice to force darkman to re-run scripts (it skips if mode unchanged)
-    home.activation.applyTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    # Apply theme when Stylix color schemes change
+    xdg.dataFile."color-schemes/stylix-dark.colors".onChange = ''
+      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    '';
+    xdg.dataFile."color-schemes/stylix-light.colors".onChange = ''
       ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
       ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
     '';
