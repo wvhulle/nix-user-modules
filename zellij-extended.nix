@@ -93,6 +93,7 @@ in
       };
 
       settings = {
+        on_force_close = "quit";
         show_startup_tips = false;
         default_layout = "compact";
         theme = defaultTheme;

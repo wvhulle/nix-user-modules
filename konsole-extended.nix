@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -39,7 +38,7 @@ in
 
     command = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = "${pkgs.zellij}/bin/zellij";
+      default = null;
       description = "Command to run on new sessions";
     };
   };
