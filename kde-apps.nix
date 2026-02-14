@@ -21,6 +21,8 @@ in
         ark
         okular
         filelight
+        kaccounts-integration
+        kaccounts-providers
         partitionmanager
       ];
       description = "KDE packages to install";
