@@ -27,8 +27,44 @@ let
   darkThemeFile = generateZellijTheme "stylix-dark" darkSchemeFile;
   lightThemeFile = generateZellijTheme "stylix-light" lightSchemeFile;
 
-  # Select default theme based on stylix polarity
-  defaultTheme = if stylixCfg.polarity == "light" then "stylix-light" else "stylix-dark";
+  zellijSettings = {
+    on_force_close = "quit";
+    show_startup_tips = false;
+    default_layout = "compact";
+    default_mode = "locked";
+    mouse_mode = true;
+
+    keybinds = {
+      locked = {
+        "bind \"Alt h\"" = {
+          MoveFocus = "Left";
+        };
+        "bind \"Alt j\"" = {
+          MoveFocus = "Down";
+        };
+        "bind \"Alt k\"" = {
+          MoveFocus = "Up";
+        };
+        "bind \"Alt l\"" = {
+          MoveFocus = "Right";
+        };
+      };
+    };
+
+    ui = {
+      pane_frames = {
+        hide_session_name = true;
+      };
+    };
+    simplified_ui = true;
+  };
+
+  darkConfig = pkgs.writeText "zellij-config-dark.kdl" (
+    lib.hm.generators.toKDL { } (zellijSettings // { theme = "stylix-dark"; })
+  );
+  lightConfig = pkgs.writeText "zellij-config-light.kdl" (
+    lib.hm.generators.toKDL { } (zellijSettings // { theme = "stylix-light"; })
+  );
 in
 {
   options.programs.zellij-extended = {
@@ -42,11 +78,18 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Generate theme files for darkman to reference
     xdg.configFile = lib.mkIf cfg.generateStylixThemes {
       "zellij/themes/stylix-dark.kdl".source = darkThemeFile;
       "zellij/themes/stylix-light.kdl".source = lightThemeFile;
+      "zellij/config-dark.kdl".source = darkConfig;
+      "zellij/config-light.kdl".source = lightConfig;
     };
+
+    # home.activation.zellijConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+    #   config_dir="${config.xdg.configHome}/zellij"
+    #   mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "${defaultMode}")
+    #   cp "$config_dir/config-$mode.kdl" "$config_dir/config.kdl"
+    # '';
 
     programs.zellij = {
       enable = true;
@@ -92,38 +135,8 @@ in
         };
       };
 
-      settings = {
-        on_force_close = "quit";
-        show_startup_tips = false;
-        default_layout = "compact";
-        theme = defaultTheme;
-        default_mode = "locked";
-        mouse_mode = true;
-
-        keybinds = {
-          locked = {
-            "bind \"Alt h\"" = {
-              MoveFocus = "Left";
-            };
-            "bind \"Alt j\"" = {
-              MoveFocus = "Down";
-            };
-            "bind \"Alt k\"" = {
-              MoveFocus = "Up";
-            };
-            "bind \"Alt l\"" = {
-              MoveFocus = "Right";
-            };
-          };
-        };
-
-        ui = {
-          pane_frames = {
-            hide_session_name = true;
-          };
-        };
-        simplified_ui = true;
-      };
+      # Empty settings so home-manager does not generate config.kdl
+      settings = { };
     };
   };
 }
