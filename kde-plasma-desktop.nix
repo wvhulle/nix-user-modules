@@ -46,70 +46,74 @@ in
       "color-schemes/stylix-light.colors".source = lightColorsFile;
     };
 
-    # Plasma-manager configuration (disabled by default)
+    # Plasma-manager configuration (enabled minimally for numlock only)
     # Convert existing settings: nix run github:nix-community/plasma-manager -- -n
     # https://nix-community.github.io/plasma-manager/options.xhtml
     # Widget names: kpackagetool6 --type=Plasma/Applet --list --global
     programs.plasma = {
-      enable = false;
+      enable = false; # Enable for numlock setting to work on Wayland
       overrideConfig = true;
 
-      workspace.wallpaperPictureOfTheDay.provider = "bing";
-      kscreenlocker.appearance.wallpaperPictureOfTheDay.provider = "bing";
+      # Enable numlock on startup for Wayland sessions
+      input.keyboard.numlockOnStartup = "on";
 
-      panels = [
-        {
-          location = "bottom";
-          floating = true;
-          widgets = [
-            { name = "org.kde.plasma.kicker"; }
-            {
-              name = "org.kde.plasma.taskmanager";
-              config.General.launchers = [
-                "preferred://filemanager"
-                "applications:firefox.desktop"
-                "applications:signal.desktop"
-                "applications:kitty.desktop"
-                "applications:lunatask.desktop"
-              ];
-            }
-            "org.kde.plasma.marginsseparator"
-            {
-              name = "martchus.syncthingplasmoid";
-              config = {
-                selectedConfig = 0;
-                showTabTexts = false;
-                showDownloads = true;
-              };
-            }
-            {
-              systemTray.items = {
-                shown = [
-                  "org.kde.plasma.networkmanagement"
-                  "org.kde.plasma.bluetooth"
-                  "org.kde.plasma.battery"
-                  "org.kde.plasma.brightness"
-                  "org.kde.plasma.volume"
-                ];
-                hidden = [ "org.kde.plasma.clipboard" ];
-              };
-            }
-            {
-              digitalClock = {
-                calendar.firstDayOfWeek = "monday";
-                time = {
-                  format = "24h";
-                  showSeconds = "always";
-                };
-                date = {
-                  enable = true;
-                  format = "isoDate";
-                };
-              };
-            }
-          ];
-        }
-      ];
+      # Wallpaper and panel configuration disabled to preserve manual KDE settings
+      # workspace.wallpaperPictureOfTheDay.provider = "bing";
+      # kscreenlocker.appearance.wallpaperPictureOfTheDay.provider = "bing";
+
+      # panels = [
+      #   {
+      #     location = "bottom";
+      #     floating = true;
+      #     widgets = [
+      #       { name = "org.kde.plasma.kicker"; }
+      #       {
+      #         name = "org.kde.plasma.taskmanager";
+      #         config.General.launchers = [
+      #           "preferred://filemanager"
+      #           "applications:firefox.desktop"
+      #           "applications:signal.desktop"
+      #           "applications:kitty.desktop"
+      #           "applications:lunatask.desktop"
+      #         ];
+      #       }
+      #       "org.kde.plasma.marginsseparator"
+      #       {
+      #         name = "martchus.syncthingplasmoid";
+      #         config = {
+      #           selectedConfig = 0;
+      #           showTabTexts = false;
+      #           showDownloads = true;
+      #         };
+      #       }
+      #       {
+      #         systemTray.items = {
+      #           shown = [
+      #             "org.kde.plasma.networkmanagement"
+      #             "org.kde.plasma.bluetooth"
+      #             "org.kde.plasma.battery"
+      #             "org.kde.plasma.brightness"
+      #             "org.kde.plasma.volume"
+      #           ];
+      #           hidden = [ "org.kde.plasma.clipboard" ];
+      #         };
+      #       }
+      #       {
+      #         digitalClock = {
+      #           calendar.firstDayOfWeek = "monday";
+      #           time = {
+      #             format = "24h";
+      #             showSeconds = "always";
+      #           };
+      #           date = {
+      #             enable = true;
+      #             format = "isoDate";
+      #           };
+      #         };
+      #       }
+      #     ];
+      #   }
+      # ];
     };
   };
 }

@@ -85,58 +85,58 @@ in
       "zellij/config-light.kdl".source = lightConfig;
     };
 
-    # home.activation.zellijConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
-    #   config_dir="${config.xdg.configHome}/zellij"
-    #   mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "${defaultMode}")
-    #   cp "$config_dir/config-$mode.kdl" "$config_dir/config.kdl"
-    # '';
+    home.activation.zellijConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+      config_dir="${config.xdg.configHome}/zellij"
+      mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "dark")
+      cp "$config_dir/config-$mode.kdl" "$config_dir/config.kdl"
+    '';
 
     programs.zellij = {
-      enable = true;
+      # enable = true;
 
-      layouts = {
-        mobile = {
-          layout = {
-            _props = {
-              default_mode = "normal";
-            };
-            _children = [
-              {
-                default_tab_template = {
-                  _children = [
-                    {
-                      pane = {
-                        size = 1;
-                        borderless = true;
-                        plugin = {
-                          location = "zellij:tab-bar";
-                        };
-                      };
-                    }
-                    { "children" = { }; }
-                  ];
-                };
-              }
-              {
-                tab = {
-                  _props = {
-                    name = "shell";
-                    focus = true;
-                  };
-                  _children = [
-                    {
-                      pane = { };
-                    }
-                  ];
-                };
-              }
-            ];
-          };
-        };
-      };
+      # layouts = {
+      #   mobile = {
+      #     layout = {
+      #       _props = {
+      #         default_mode = "normal";
+      #       };
+      #       _children = [
+      #         {
+      #           default_tab_template = {
+      #             _children = [
+      #               {
+      #                 pane = {
+      #                   size = 1;
+      #                   borderless = true;
+      #                   plugin = {
+      #                     location = "zellij:tab-bar";
+      #                   };
+      #                 };
+      #               }
+      #               { "children" = { }; }
+      #             ];
+      #           };
+      #         }
+      #         {
+      #           tab = {
+      #             _props = {
+      #               name = "shell";
+      #               focus = true;
+      #             };
+      #             _children = [
+      #               {
+      #                 pane = { };
+      #               }
+      #             ];
+      #           };
+      #         }
+      #       ];
+      #     };
+      #   };
+      # };
 
       # Empty settings so home-manager does not generate config.kdl
-      settings = { };
+      # settings = { };
     };
   };
 }
