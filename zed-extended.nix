@@ -63,11 +63,11 @@ in
 
       userSettings = {
         # Theme integration (follows OS dark/light preference)
-        theme = {
-          mode = "system";
-          inherit (config.programs.darkMode.apps.zed) dark;
-          inherit (config.programs.darkMode.apps.zed) light;
-        };
+        # theme = {
+        #   mode = "system";
+        #   inherit (config.programs.darkMode.apps.zed) dark;
+        #   inherit (config.programs.darkMode.apps.zed) light;
+        # };
 
         # Font configuration from Stylix
         buffer_font_family = fontsCfg.monospace.name;

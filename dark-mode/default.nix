@@ -85,11 +85,11 @@ in
     apps = lib.mkOption {
       type = lightDarkAppSet;
       default = {
-        gtk = {
-          dark = "Breeze-Dark";
-          light = "Breeze";
-          script = ./gtk-theme.nu;
-        };
+        # gtk = {
+        #   dark = "Breeze-Dark";
+        #   light = "Breeze";
+        #   script = ./gtk-theme.nu;
+        # };
 
         plasma = {
           # Use Stylix-generated themes from plasma-extended module
@@ -99,17 +99,17 @@ in
           script = ./plasma-theme.nu;
         };
 
-        konsole = {
-          dark = "Dark";
-          light = "Light";
-          script = ./konsole-theme.nu;
-        };
+        # konsole = {
+        #   dark = "Dark";
+        #   light = "Light";
+        #   script = ./konsole-theme.nu;
+        # };
 
-        cursor = {
-          dark = "Breeze_Snow";
-          light = "Breeze_Light";
-          script = ./cursor-theme.nu;
-        };
+        # cursor = {
+        #   dark = "Breeze_Snow";
+        #   light = "Breeze_Light";
+        #   script = ./cursor-theme.nu;
+        # };
 
         kitty = {
           # Use Stylix-generated themes from kitty-extended module
@@ -119,33 +119,33 @@ in
           script = ./kitty-theme.nu;
         };
 
-        helix = {
-          dark = "everblush";
-          light = "eiffel";
-        };
+        # helix = {
+        #   dark = "everblush";
+        #   light = "eiffel";
+        # };
 
-        neovim = {
-          dark = "catppuccin-mocha";
-          light = "catppuccin-latte";
-          script = ./neovim-theme.nu;
-        };
+        # neovim = {
+        #   dark = "catppuccin-mocha";
+        #   light = "catppuccin-latte";
+        #   script = ./neovim-theme.nu;
+        # };
 
-        claude-code = {
-          dark = "dark";
-          light = "light";
-          script = ./claude-code-theme.nu;
-        };
+        # claude-code = {
+        #   dark = "dark";
+        #   light = "light";
+        #   script = ./claude-code-theme.nu;
+        # };
 
-        vscode = {
-          dark = "GitHub Dark";
-          light = "GitHub Light";
-        };
+        # vscode = {
+        #   dark = "GitHub Dark";
+        #   light = "GitHub Light";
+        # };
 
-        zed = {
-          dark = "One Dark";
-          light = "One Light";
-          # No script needed - Zed uses theme.mode = "system" to follow OS preference
-        };
+        # zed = {
+        #   dark = "One Dark";
+        #   light = "One Light";
+        #   # No script needed - Zed uses theme.mode = "system" to follow OS preference
+        # };
 
         zellij = {
           # Use Stylix-generated themes from zellij-extended module

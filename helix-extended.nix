@@ -97,11 +97,11 @@ in
                 o = ":toggle inline-diagnostics.other-lines error disable";
 
               };
-              t = {
-                "1" = ":theme ${config.programs.darkMode.apps.helix.dark}";
-                "2" = ":theme ${config.programs.darkMode.apps.helix.light}";
+              # t = {
+              #   "1" = ":theme ${config.programs.darkMode.apps.helix.dark}";
+              #   "2" = ":theme ${config.programs.darkMode.apps.helix.light}";
 
-              };
+              # };
 
               B = ''
                 :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}

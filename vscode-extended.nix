@@ -196,7 +196,7 @@ let
 
     workbench = {
       list.smoothScrolling = true;
-      colorTheme = config.programs.darkMode.apps.vscode.dark;
+      # colorTheme = config.programs.darkMode.apps.vscode.dark;
       editor = {
         enablePreview = false;
         highlightModifiedTabs = true;
