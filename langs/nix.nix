@@ -93,5 +93,6 @@ in
     nixos-option
     home-manager
     nh
+    nix-output-monitor
   ];
 }

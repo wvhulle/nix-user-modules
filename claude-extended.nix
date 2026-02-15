@@ -86,7 +86,7 @@ in
       commands = agentCfg.languageCommands;
 
       settings = {
-        model = "Sonnet";
+        # model = "Sonnet"; # Model name is lowercase with version and date identifier
         # thinking = false;
         includeCoAuthoredBy = false;
         permissions = {
