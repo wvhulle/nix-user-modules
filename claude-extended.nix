@@ -86,6 +86,9 @@ in
       commands = agentCfg.languageCommands;
 
       settings = {
+        model = "Sonnet";
+        # thinking = false;
+        includeCoAuthoredBy = false;
         permissions = {
           allow = generateAllowList;
           deny = generateDenyList;

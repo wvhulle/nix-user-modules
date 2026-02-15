@@ -112,11 +112,11 @@ in
         kitty.enable = false;
         kde.enable = false;
         helix.enable = false;
-        neovim.enable = false;
+        # neovim.enable = false;
         vscode.enable = false;
-        zed.enable = false;
+        # zed.enable = false;
         zellij.enable = false;
-
+        gnome.enable = false;
         firefox.enable = false;
 
         # Disable GTK2 to avoid backup file conflicts on rebuild

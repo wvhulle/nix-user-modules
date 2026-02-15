@@ -3,7 +3,7 @@
 let
   cfg = config.programs.zed-extended;
   langCfg = config.programs.languages;
-  fontsCfg = config.stylix.fonts;
+  # fontsCfg = config.stylix.fonts;
   enabledLanguages = lib.filterAttrs (_: l: l.enable) langCfg.languages;
 
   # Zed uses capitalized language names (Rust, Python, Nix)
@@ -70,10 +70,10 @@ in
         # };
 
         # Font configuration from Stylix
-        buffer_font_family = fontsCfg.monospace.name;
-        buffer_font_size = fontsCfg.sizes.applications;
-        ui_font_family = fontsCfg.sansSerif.name;
-        ui_font_size = fontsCfg.sizes.desktop;
+        # buffer_font_family = fontsCfg.monospace.name;
+        # buffer_font_size = fontsCfg.sizes.applications;
+        # ui_font_family = fontsCfg.sansSerif.name;
+        # ui_font_size = fontsCfg.sizes.desktop;
 
         # Built-in Helix mode (also enables vim_mode)
         helix_mode = true;
