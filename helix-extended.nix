@@ -148,11 +148,20 @@ in
             lib.optionalAttrs (server.command != null) { inherit (server) command; }
             // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
             // lib.optionalAttrs (server.config != { }) { inherit (server) config; };
+
+          toHelixGrammar = name: lang: {
+            inherit name;
+            source.path = "${lang.grammar}";
+          };
+
+          languagesWithGrammars = lib.filterAttrs (_: l: l.grammar != null) enabledLanguages;
         in
         {
           language = lib.sortOn (l: l.name) (lib.mapAttrsToList toHelixLanguage enabledLanguages);
 
           language-server = lib.mapAttrs toHelixServer langCfg.servers;
+
+          grammar = lib.mapAttrsToList toHelixGrammar languagesWithGrammars;
         };
     };
 

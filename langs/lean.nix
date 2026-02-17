@@ -1,4 +1,8 @@
-{ pkgs, ast-grep }:
+{
+  pkgs,
+  ast-grep,
+  tree-sitter-lean,
+}:
 
 {
   extensions = [ "lean" ];
@@ -24,4 +28,5 @@
     ast-grep-lsp = ast-grep;
   };
   additionalPackages = [ pkgs.elan ];
+  grammar = tree-sitter-lean.packages.${pkgs.system}.default;
 }

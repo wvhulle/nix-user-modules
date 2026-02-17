@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  tree-sitter-lean,
   ...
 }:
 
@@ -65,7 +66,13 @@ let
     nu = import ./nushell.nix { inherit pkgs harper-ls; };
     typst = import ./typst.nix { inherit pkgs harper-ls ast-grep; };
     markdown = import ./markdown.nix { inherit pkgs harper-ls; };
-    lean = import ./lean.nix { inherit pkgs ast-grep; };
+    lean = import ./lean.nix {
+      inherit
+        pkgs
+        ast-grep
+        tree-sitter-lean
+        ;
+    };
     sh = import ./sh.nix { };
     nickel = import ./nickel.nix { inherit pkgs; };
     python = import ./python.nix { inherit pkgs ast-grep; };
@@ -305,6 +312,11 @@ let
         default = [ ];
         description = "MIME types associated with this language";
       };
+      grammar = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = null;
+        description = "Tree-sitter grammar package override for Helix (should be added to flake inputs)";
+      };
     };
   };
 
@@ -319,6 +331,7 @@ let
   allLinters = collectTools "linter" (l: l != null && l.enable);
   allCompilers = collectTools "compiler" (c: c != null && c.enable);
   allDebuggers = collectTools "debugger" (d: d != null && d.enable);
+  allGrammars = collectTools "grammar" (g: g != null);
   allAdditionalPaths = lib.concatMap (lang: lang.additionalPaths) enabledLanguagesList;
   allAdditionalPackages = lib.concatMap (lang: lang.additionalPackages) enabledLanguagesList;
   allServers = lib.foldl' (
@@ -381,6 +394,7 @@ in
         ++ (map (l: l.package) allLinters)
         ++ (map (c: c.package) allCompilers)
         ++ (map (d: d.package) allDebuggers)
+        ++ allGrammars
         ++ allAdditionalPackages
         ++ allLSPServerPackages;
     };
