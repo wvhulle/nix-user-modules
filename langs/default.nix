@@ -14,7 +14,7 @@ let
   #   name = "typos_lsp";
   # };
 
-  astGrepServer = {
+  ast-grep = {
     package = pkgs.ast-grep;
     args = [ "lsp" ];
     name = "ast_grep";
@@ -50,25 +50,25 @@ let
         pkgs
         config
         harper-ls
-        astGrepServer
+        ast-grep
         ;
     };
-    cpp = import ./cpp.nix { inherit pkgs astGrepServer; };
-    javascript = import ./javascript.nix { inherit pkgs astGrepServer; };
+    cpp = import ./cpp.nix { inherit pkgs ast-grep; };
+    javascript = import ./javascript.nix { inherit pkgs ast-grep; };
     nix = import ./nix.nix {
       inherit
         lib
         pkgs
-        astGrepServer
+        ast-grep
         ;
     };
     nu = import ./nushell.nix { inherit pkgs harper-ls; };
-    typst = import ./typst.nix { inherit pkgs harper-ls astGrepServer; };
+    typst = import ./typst.nix { inherit pkgs harper-ls ast-grep; };
     markdown = import ./markdown.nix { inherit pkgs harper-ls; };
-    lean = import ./lean.nix { inherit pkgs; };
+    lean = import ./lean.nix { inherit pkgs ast-grep; };
     sh = import ./sh.nix { };
     nickel = import ./nickel.nix { inherit pkgs; };
-    python = import ./python.nix { inherit pkgs astGrepServer; };
+    python = import ./python.nix { inherit pkgs ast-grep; };
     zig = import ./zig.nix { inherit pkgs; };
     typescript = import ./typescript.nix { };
     agda.enable = false;

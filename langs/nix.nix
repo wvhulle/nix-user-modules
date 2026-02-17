@@ -1,7 +1,7 @@
 {
   lib,
   pkgs,
-  astGrepServer,
+  ast-grep,
 }:
 
 let
@@ -78,7 +78,7 @@ in
       };
     };
 
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
   };
 
   additionalPackages = with pkgs; [

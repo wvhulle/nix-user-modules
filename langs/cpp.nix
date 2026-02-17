@@ -1,6 +1,6 @@
 {
   pkgs,
-  astGrepServer,
+  ast-grep,
 }:
 
 {
@@ -44,7 +44,7 @@
         "--clang-tidy"
       ];
     };
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
   };
 
   debugger = {

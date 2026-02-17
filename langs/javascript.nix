@@ -1,6 +1,6 @@
 {
   pkgs,
-  astGrepServer,
+  ast-grep,
 }:
 
 {
@@ -59,7 +59,7 @@
       };
     };
 
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
   };
 
   additionalPackages = [

@@ -3,7 +3,7 @@
   pkgs,
   config,
   harper-ls,
-  astGrepServer,
+  ast-grep,
 }:
 
 {
@@ -97,7 +97,7 @@
       };
     };
     inherit harper-ls;
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
     # TODO switch to backtrace-ls
     # assert-lsp = {
     #   command = "assert-lsp";

@@ -1,7 +1,7 @@
 {
   pkgs,
   harper-ls,
-  astGrepServer,
+  ast-grep,
 }:
 
 {
@@ -27,7 +27,7 @@
       };
     };
     inherit harper-ls;
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
   };
   compiler.package = pkgs.typst;
 }

@@ -1,4 +1,4 @@
-{ pkgs }:
+{ pkgs, ast-grep }:
 
 {
   extensions = [ "lean" ];
@@ -15,10 +15,13 @@
     "lakefile.lean"
     "lean-toolchain"
   ];
-  servers.lean4 = {
-    command = "lake";
-    args = [ "serve" ];
+  servers = {
+    lean4 = {
+      command = "lake";
+      args = [ "serve" ];
 
+    };
+    ast-grep-lsp = ast-grep;
   };
   additionalPackages = [ pkgs.elan ];
 }

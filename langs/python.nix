@@ -1,4 +1,4 @@
-{ pkgs, astGrepServer }:
+{ pkgs, ast-grep }:
 
 {
   scope = "source.python";
@@ -9,7 +9,7 @@
   ];
   instructions = [ "Use type hints" ];
   servers = {
-    ast-grep-lsp = astGrepServer;
+    ast-grep-lsp = ast-grep;
     ty = {
       package = pkgs.ty;
       command = "ty";
