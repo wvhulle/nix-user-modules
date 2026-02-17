@@ -217,6 +217,36 @@ let
     };
   };
 
+  grammarType = lib.types.submodule {
+    options = {
+      name = lib.mkOption { type = lib.types.str; };
+      package = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = null;
+        description = "Pre-built grammar package. When set, the compiled .so is placed directly into the Helix runtime, bypassing `hx --grammar build`.";
+      };
+      source = lib.mkOption {
+        type = lib.types.submodule {
+          options = {
+            git = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+            };
+            rev = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+            };
+            path = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+            };
+          };
+        };
+        default = { };
+      };
+    };
+  };
+
   commandType = lib.types.submodule {
     options = {
       description = lib.mkOption {
@@ -313,9 +343,14 @@ let
         description = "MIME types associated with this language";
       };
       grammar = lib.mkOption {
-        type = lib.types.nullOr lib.types.package;
+        type = lib.types.nullOr grammarType;
         default = null;
-        description = "Tree-sitter grammar package override for Helix (should be added to flake inputs)";
+        description = "Tree-sitter grammar override for Helix";
+      };
+      queries = lib.mkOption {
+        type = lib.types.attrsOf lib.types.path;
+        default = { };
+        description = "Tree-sitter query files for Helix (e.g. { highlights = ./highlights.scm; })";
       };
     };
   };
@@ -331,7 +366,6 @@ let
   allLinters = collectTools "linter" (l: l != null && l.enable);
   allCompilers = collectTools "compiler" (c: c != null && c.enable);
   allDebuggers = collectTools "debugger" (d: d != null && d.enable);
-  allGrammars = collectTools "grammar" (g: g != null);
   allAdditionalPaths = lib.concatMap (lang: lang.additionalPaths) enabledLanguagesList;
   allAdditionalPackages = lib.concatMap (lang: lang.additionalPackages) enabledLanguagesList;
   allServers = lib.foldl' (
@@ -394,7 +428,6 @@ in
         ++ (map (l: l.package) allLinters)
         ++ (map (c: c.package) allCompilers)
         ++ (map (d: d.package) allDebuggers)
-        ++ allGrammars
         ++ allAdditionalPackages
         ++ allLSPServerPackages;
     };

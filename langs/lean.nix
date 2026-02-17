@@ -4,6 +4,9 @@
   tree-sitter-lean,
 }:
 
+let
+  grammar = tree-sitter-lean.packages.${pkgs.stdenv.hostPlatform.system}.grammar;
+in
 {
   extensions = [ "lean" ];
   instructions = [
@@ -23,10 +26,18 @@
     lean4 = {
       command = "lake";
       args = [ "serve" ];
-
     };
     ast-grep-lsp = ast-grep;
   };
   additionalPackages = [ pkgs.elan ];
-  grammar = tree-sitter-lean.packages.${pkgs.system}.default;
+  grammar = {
+    name = "lean";
+    package = grammar;
+  };
+  queries = {
+    highlights = "${tree-sitter-lean}/queries/highlights.scm";
+    folds = "${tree-sitter-lean}/queries/folds.scm";
+    locals = "${tree-sitter-lean}/queries/locals.scm";
+    injections = "${tree-sitter-lean}/queries/injections.scm";
+  };
 }

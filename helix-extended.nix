@@ -115,6 +115,8 @@ in
 
       languages =
         let
+          cleanup = lib.filterAttrs (_: v: v != null && v != [ ] && v != { });
+
           toHelixLanguage =
             name: lang:
             {
@@ -123,47 +125,79 @@ in
               language-servers = lib.attrNames (lang.servers or { });
               file-types = if lang.fileTypes != [ ] then lang.fileTypes else lang.extensions;
             }
-            // lib.optionalAttrs (lang.scope != null) { inherit (lang) scope; }
-            // lib.optionalAttrs (lang.roots != [ ]) { inherit (lang) roots; }
-            // lib.optionalAttrs (lang.formatter != null) {
-              formatter = {
-                command = lang.formatter.command or (lib.getExe lang.formatter.package);
-                inherit (lang.formatter) args;
-              };
-            }
-            // lib.optionalAttrs (lang.debugger != null && lang.debugger.enable) {
-              debugger = {
-                inherit (lang.debugger)
-                  name
-                  transport
-                  command
-                  templates
-                  ;
-              }
-              // lib.optionalAttrs (lang.debugger.args != [ ]) { inherit (lang.debugger) args; };
+            // cleanup {
+              inherit (lang) scope roots;
+              grammar = if lang.grammar != null then lang.grammar.name else null;
+              formatter =
+                if lang.formatter != null then
+                  {
+                    inherit (lang.formatter) command args;
+                  }
+                else
+                  null;
+              debugger =
+                if lang.debugger != null && lang.debugger.enable then
+                  cleanup {
+                    inherit (lang.debugger)
+                      name
+                      transport
+                      command
+                      templates
+                      args
+                      ;
+                  }
+                else
+                  null;
             };
 
-          toHelixServer =
-            _: server:
-            lib.optionalAttrs (server.command != null) { inherit (server) command; }
-            // lib.optionalAttrs (server.args != [ ]) { inherit (server) args; }
-            // lib.optionalAttrs (server.config != { }) { inherit (server) config; };
+          toHelixServer = _: server: cleanup { inherit (server) command args config; };
 
-          toHelixGrammar = name: lang: {
-            inherit name;
-            source.path = "${lang.grammar}";
+          toHelixGrammar = _: lang: {
+            inherit (lang.grammar) name;
+            source = lib.filterAttrs (_: v: v != null) lang.grammar.source;
           };
 
-          languagesWithGrammars = lib.filterAttrs (_: l: l.grammar != null) enabledLanguages;
+          # Only generate [[grammar]] entries for grammars that Helix should fetch/build itself.
+          # Grammars with a `package` are placed directly into the runtime via xdg.configFile.
+          fetchedGrammars = lib.filterAttrs (
+            _: l: l.grammar != null && l.grammar.package == null
+          ) enabledLanguages;
         in
         {
           language = lib.sortOn (l: l.name) (lib.mapAttrsToList toHelixLanguage enabledLanguages);
 
           language-server = lib.mapAttrs toHelixServer langCfg.servers;
 
-          grammar = lib.mapAttrsToList toHelixGrammar languagesWithGrammars;
+          grammar = lib.mapAttrsToList toHelixGrammar fetchedGrammars;
         };
     };
+
+    # Place pre-built grammars and query files into the Helix runtime
+    xdg.configFile = lib.mkMerge (
+      lib.mapAttrsToList
+        (
+          _: lang:
+          let
+            g = lang.grammar;
+          in
+          # Pre-built grammar .so
+          (lib.optionalAttrs (g != null && g.package != null) {
+            "helix/runtime/grammars/${g.name}.so".source = "${g.package}/${g.name}.so";
+          })
+          # Query files
+          // (lib.mapAttrs' (
+            queryName: queryPath:
+            lib.nameValuePair "helix/runtime/queries/${g.name}/${queryName}.scm" {
+              source = queryPath;
+            }
+          ) (lib.optionalAttrs (g != null) lang.queries))
+        )
+        (
+          lib.filterAttrs (
+            _: l: l.grammar != null && (l.grammar.package != null || l.queries != { })
+          ) enabledLanguages
+        )
+    );
 
     programs.languages.enable = true;
   };
