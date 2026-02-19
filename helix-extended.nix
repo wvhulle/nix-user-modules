@@ -152,52 +152,80 @@ in
 
           toHelixServer = _: server: cleanup { inherit (server) command args config; };
 
-          toHelixGrammar = _: lang: {
-            inherit (lang.grammar) name;
-            source = lib.filterAttrs (_: v: v != null) lang.grammar.source;
-          };
+          toHelixGrammar =
+            _: lang:
+            let
+              g = lang.grammar;
+            in
+            {
+              inherit (g) name;
+            };
 
-          # Only generate [[grammar]] entries for grammars that Helix should fetch/build itself.
-          # Grammars with a `package` are placed directly into the runtime via xdg.configFile.
-          fetchedGrammars = lib.filterAttrs (
-            _: l: l.grammar != null && l.grammar.package == null
-          ) enabledLanguages;
+          allGrammarsLangs = lib.filterAttrs (_: l: l.grammar != null) enabledLanguages;
         in
         {
           language = lib.sortOn (l: l.name) (lib.mapAttrsToList toHelixLanguage enabledLanguages);
 
           language-server = lib.mapAttrs toHelixServer langCfg.servers;
 
-          grammar = lib.mapAttrsToList toHelixGrammar fetchedGrammars;
+          grammar = lib.mapAttrsToList toHelixGrammar allGrammarsLangs;
         };
     };
 
     # Place pre-built grammars and query files into the Helix runtime
-    xdg.configFile = lib.mkMerge (
-      lib.mapAttrsToList
-        (
+    xdg.configFile =
+      let
+        prebuiltGrammars = lib.filterAttrs (
+          _: l: l.grammar != null && l.grammar.package != null
+        ) enabledLanguages;
+
+        languagesWithQueries = lib.filterAttrs (
+          _: l: l.grammar != null && l.queries != { }
+        ) enabledLanguages;
+
+        # Pre-built grammar .so — force to overwrite files left by `hx --grammar build`
+        grammarFiles = lib.mapAttrs' (
           _: lang:
           let
             g = lang.grammar;
           in
-          # Pre-built grammar .so
-          (lib.optionalAttrs (g != null && g.package != null) {
-            "helix/runtime/grammars/${g.name}.so".source = "${g.package}/${g.name}.so";
-          })
-          # Query files
-          // (lib.mapAttrs' (
+          lib.nameValuePair "helix/runtime/grammars/${g.name}.so" {
+            source = "${g.package}/${g.name}.so";
+            force = true;
+          }
+        ) prebuiltGrammars;
+
+        queryFiles = lib.concatMapAttrs (
+          _: lang:
+          let
+            g = lang.grammar;
+          in
+          lib.mapAttrs' (
             queryName: queryPath:
             lib.nameValuePair "helix/runtime/queries/${g.name}/${queryName}.scm" {
               source = queryPath;
             }
-          ) (lib.optionalAttrs (g != null) lang.queries))
-        )
-        (
-          lib.filterAttrs (
-            _: l: l.grammar != null && (l.grammar.package != null || l.queries != { })
-          ) enabledLanguages
-        )
-    );
+          ) lang.queries
+        ) languagesWithQueries;
+      in
+      grammarFiles // queryFiles;
+
+    assertions =
+      let
+        prebuiltGrammars = lib.filterAttrs (
+          _: l: l.grammar != null && l.grammar.package != null
+        ) enabledLanguages;
+      in
+      lib.mapAttrsToList (
+        name: lang:
+        let
+          g = lang.grammar;
+        in
+        {
+          assertion = builtins.pathExists (g.package + "/${g.name}.so");
+          message = "Helix grammar package for language '${name}' does not contain '${g.name}.so' at ${g.package}/. Check that grammar.name matches the .so filename in the package output.";
+        }
+      ) prebuiltGrammars;
 
     programs.languages.enable = true;
   };

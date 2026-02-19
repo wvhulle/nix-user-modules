@@ -217,35 +217,22 @@ let
     };
   };
 
-  grammarType = lib.types.submodule {
-    options = {
-      name = lib.mkOption { type = lib.types.str; };
-      package = lib.mkOption {
-        type = lib.types.nullOr lib.types.package;
-        default = null;
-        description = "Pre-built grammar package. When set, the compiled .so is placed directly into the Helix runtime, bypassing `hx --grammar build`.";
-      };
-      source = lib.mkOption {
-        type = lib.types.submodule {
-          options = {
-            git = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-            };
-            rev = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-            };
-            path = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-            };
-          };
+  grammarType =
+    langName:
+    lib.types.submodule {
+      options = {
+        name = lib.mkOption {
+          type = lib.types.str;
+          default = langName;
+          description = "Grammar name (defaults to the language attribute key)";
         };
-        default = { };
+        package = lib.mkOption {
+          type = lib.types.nullOr lib.types.package;
+          default = null;
+          description = "Pre-built grammar package. When set, the compiled .so is placed directly into the Helix runtime, bypassing `hx --grammar build`.";
+        };
       };
     };
-  };
 
   commandType = lib.types.submodule {
     options = {
@@ -270,90 +257,111 @@ let
     };
   };
 
-  languageType = lib.types.submodule {
-    options = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = true;
+  languageType = lib.types.submodule (
+    { config, name, ... }:
+    {
+      options = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+        };
+        scope = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+        };
+        extensions = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "File extensions for this language (used by Helix file-types and AI agent matching)";
+        };
+        fileTypes = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Additional file type patterns for Helix (globs, shebang patterns)";
+        };
+        roots = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+        };
+        instructions = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "AI agent instructions for this language";
+        };
+        commands = lib.mkOption {
+          type = lib.types.attrsOf commandType;
+          default = { };
+          description = "Language-specific commands/prompts shared between Claude Code and VSCode Copilot";
+        };
+        terminalCommands = lib.mkOption {
+          type = lib.types.attrsOf terminalCommandType;
+          default = { };
+          description = "Language-specific terminal command auto-approval settings";
+        };
+        formatter = lib.mkOption {
+          type = lib.types.nullOr toolType;
+          default = null;
+        };
+        linter = lib.mkOption {
+          type = lib.types.nullOr toolType;
+          default = null;
+        };
+        compiler = lib.mkOption {
+          type = lib.types.nullOr toolType;
+          default = null;
+        };
+        debugger = lib.mkOption {
+          type = lib.types.nullOr debuggerType;
+          default = null;
+        };
+        servers = lib.mkOption {
+          type = lib.types.attrsOf serverType;
+          default = { };
+        };
+        additionalPaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+        };
+        additionalPackages = lib.mkOption {
+          type = lib.types.listOf lib.types.package;
+          default = [ ];
+        };
+        mimeTypes = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "MIME types associated with this language";
+        };
+        grammar = lib.mkOption {
+          type = lib.types.nullOr (grammarType name);
+          default = null;
+          description = "Tree-sitter grammar override for Helix";
+        };
+        queriesPath = lib.mkOption {
+          type = lib.types.nullOr lib.types.path;
+          default = null;
+          description = "Directory containing tree-sitter query .scm files. All .scm files are auto-discovered.";
+        };
+        queries = lib.mkOption {
+          type = lib.types.attrsOf lib.types.path;
+          default = { };
+          description = "Tree-sitter query files for Helix (e.g. { highlights = ./highlights.scm; })";
+        };
       };
-      scope = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-      };
-      extensions = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "File extensions for this language (used by Helix file-types and AI agent matching)";
-      };
-      fileTypes = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "Additional file type patterns for Helix (globs, shebang patterns)";
-      };
-      roots = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-      };
-      instructions = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "AI agent instructions for this language";
-      };
-      commands = lib.mkOption {
-        type = lib.types.attrsOf commandType;
-        default = { };
-        description = "Language-specific commands/prompts shared between Claude Code and VSCode Copilot";
-      };
-      terminalCommands = lib.mkOption {
-        type = lib.types.attrsOf terminalCommandType;
-        default = { };
-        description = "Language-specific terminal command auto-approval settings";
-      };
-      formatter = lib.mkOption {
-        type = lib.types.nullOr toolType;
-        default = null;
-      };
-      linter = lib.mkOption {
-        type = lib.types.nullOr toolType;
-        default = null;
-      };
-      compiler = lib.mkOption {
-        type = lib.types.nullOr toolType;
-        default = null;
-      };
-      debugger = lib.mkOption {
-        type = lib.types.nullOr debuggerType;
-        default = null;
-      };
-      servers = lib.mkOption {
-        type = lib.types.attrsOf serverType;
-        default = { };
-      };
-      additionalPaths = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-      };
-      additionalPackages = lib.mkOption {
-        type = lib.types.listOf lib.types.package;
-        default = [ ];
-      };
-      mimeTypes = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        description = "MIME types associated with this language";
-      };
-      grammar = lib.mkOption {
-        type = lib.types.nullOr grammarType;
-        default = null;
-        description = "Tree-sitter grammar override for Helix";
-      };
-      queries = lib.mkOption {
-        type = lib.types.attrsOf lib.types.path;
-        default = { };
-        description = "Tree-sitter query files for Helix (e.g. { highlights = ./highlights.scm; })";
-      };
-    };
-  };
+
+      config.queries = lib.mkIf (config.queriesPath != null) (
+        let
+          dir = builtins.readDir config.queriesPath;
+          scmFiles = lib.filterAttrs (n: _: lib.hasSuffix ".scm" n) (
+            lib.filterAttrs (_: type: type == "regular") dir
+          );
+        in
+        lib.mapAttrs' (
+          filename: _:
+          lib.nameValuePair (lib.removeSuffix ".scm" filename) (config.queriesPath + "/${filename}")
+        ) scmFiles
+      );
+    }
+  );
 
   enabledLanguages = lib.filterAttrs (_: l: l.enable) cfg.languages;
   enabledLanguagesList = lib.attrValues enabledLanguages;

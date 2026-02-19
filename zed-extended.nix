@@ -41,6 +41,7 @@ let
         };
       }
     );
+
 in
 {
   options.programs.zed-extended = {

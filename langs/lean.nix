@@ -5,7 +5,7 @@
 }:
 
 let
-  grammar = tree-sitter-lean.packages.${pkgs.stdenv.hostPlatform.system}.grammar;
+  grammar = tree-sitter-lean.packages.${pkgs.stdenv.hostPlatform.system}.default;
 in
 {
   extensions = [ "lean" ];
@@ -30,14 +30,6 @@ in
     ast-grep-lsp = ast-grep;
   };
   additionalPackages = [ pkgs.elan ];
-  grammar = {
-    name = "lean";
-    package = grammar;
-  };
-  queries = {
-    highlights = "${tree-sitter-lean}/queries/highlights.scm";
-    folds = "${tree-sitter-lean}/queries/folds.scm";
-    locals = "${tree-sitter-lean}/queries/locals.scm";
-    injections = "${tree-sitter-lean}/queries/injections.scm";
-  };
+  grammar.package = grammar;
+  queriesPath = tree-sitter-lean + "/queries";
 }
