@@ -53,7 +53,7 @@ in
       enable = true;
 
       # Fully managed by Nix - use .zed/settings.json in projects for overrides
-      mutableUserSettings = false;
+      mutableUserSettings = true;
 
       extensions = [
         "nix"

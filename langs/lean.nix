@@ -23,9 +23,12 @@ in
     "lean-toolchain"
   ];
   servers = {
-    lean4 = {
+    lean4_lsp = {
       command = "lake";
-      args = [ "serve" ];
+      args = [
+        "serve"
+        "--"
+      ];
     };
     ast-grep-lsp = ast-grep;
   };
