@@ -22,6 +22,24 @@ let
 
   # Generate path add commands for language-specific paths
   pathAddCommands = lib.concatMapStringsSep "\n" (p: ''path add "${p}"'') languagePaths;
+
+  # Convert home.sessionVariables to nushell $env assignments
+  # Handles $HOME → ($env.HOME) substitution for nushell string interpolation
+  toNushellValue =
+    value:
+    let
+      str = toString value;
+    in
+    if lib.hasInfix "$HOME" str then
+      ''$"${builtins.replaceStrings [ "$HOME" ] [ "($env.HOME)" ] str}"''
+    else
+      ''"${str}"'';
+
+  sessionVarCommands = lib.concatStringsSep "\n" (
+    lib.mapAttrsToList (
+      name: value: "$env.${name} = ${toNushellValue value}"
+    ) config.home.sessionVariables
+  );
 in
 {
   options.programs.nushell-extended = {
@@ -41,7 +59,10 @@ in
         enable = true;
 
         envFile.source = ./env.nu;
-        extraEnv = lib.mkIf (languagePaths != [ ]) pathAddCommands;
+        extraEnv = lib.mkMerge [
+          (lib.mkIf (languagePaths != [ ]) pathAddCommands)
+          (lib.mkIf (config.home.sessionVariables != { }) sessionVarCommands)
+        ];
         configFile.source = ./config.nu;
         loginFile.source = ./login.nu;
       };
