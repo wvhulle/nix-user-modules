@@ -1,9 +1,112 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.helix-extended;
   langCfg = config.programs.languages;
   enabledLanguages = lib.filterAttrs (_: l: l.enable) langCfg.languages;
+
+  tomlFormat = pkgs.formats.toml { };
+
+  helixSettings = {
+    theme = "papercolor-dark";
+
+    editor = {
+      completion-replace = true;
+      lsp = {
+        display-progress-messages = true;
+        display-inlay-hints = true;
+        goto-reference-include-declaration = false;
+        snippets = false;
+      };
+      trim-final-newlines = true;
+      trim-trailing-whitespace = true;
+      popup-border = "all";
+      line-number = "relative";
+      rulers = [ ];
+      auto-format = true;
+
+      auto-save = {
+        enable = true;
+        focus-lost = true;
+        after-delay = {
+          enable = true;
+          timeout = 500;
+        };
+      };
+      bufferline = "multiple";
+      indent-guides = {
+        render = true;
+      };
+      end-of-line-diagnostics = "disable";
+      inline-diagnostics = {
+        cursor-line = "disable";
+        other-lines = "disable";
+      };
+
+      soft-wrap = {
+        enable = true;
+      };
+
+      shell = [
+        "nu"
+        "-c"
+      ];
+    };
+
+    keys = {
+
+      insert = {
+        S-tab = "move_parent_node_start";
+      };
+
+      select = {
+        tab = "extend_parent_node_end";
+        S-tab = "extend_parent_node_start";
+      };
+
+      normal = {
+        tab = "move_parent_node_end";
+        S-tab = "move_parent_node_start";
+        S-l = ":buffer-next";
+        S-h = ":buffer-previous";
+        "C-l" = [
+          ":write-all"
+          ":run-shell-command zellij run --in-place -c -- lazygit -p %sh{dirname %{buffer_name}}"
+          ":redraw"
+          ":reload-all"
+        ];
+        space = {
+          i = {
+            c = ":toggle inline-diagnostics.cursor-line hint disable";
+            e = ":toggle end-of-line-diagnostics warning disable";
+            o = ":toggle inline-diagnostics.other-lines error disable";
+          };
+          t = {
+            d = ":theme papercolor-dark";
+            l = ":theme papercolor-light";
+          };
+
+          B = ''
+            :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
+          '';
+          N = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
+          L = ":echo %sh{${./helix-repo-link.nu} %{buffer_name} %{cursor_line}}";
+        };
+      };
+    };
+  };
+
+  darkConfig = tomlFormat.generate "config-dark.toml" (
+    helixSettings // { theme = "papercolor-dark"; }
+  );
+  lightConfig = tomlFormat.generate "config-light.toml" (
+    helixSettings // { theme = "papercolor-light"; }
+  );
 in
 {
   options.programs.helix-extended = {
@@ -14,104 +117,6 @@ in
     programs.helix = {
       enable = true;
       defaultEditor = true;
-
-      settings = {
-        theme = "base16_transparent";
-
-        editor = {
-          completion-replace = true;
-          lsp = {
-            display-progress-messages = true;
-            display-inlay-hints = true;
-            goto-reference-include-declaration = false;
-            snippets = false;
-          };
-          trim-final-newlines = true;
-          trim-trailing-whitespace = true;
-          popup-border = "all";
-          line-number = "relative";
-          rulers = [ ];
-          # gutters = [
-          #   "diff"
-          #   "diagnostics"
-          #   "line-numbers"
-          #   "spacer"
-          # ];
-          auto-format = true;
-
-          auto-save = {
-            enable = true;
-            focus-lost = true;
-            after-delay = {
-              enable = true;
-              timeout = 500;
-            };
-          };
-          bufferline = "multiple";
-          indent-guides = {
-            render = true;
-          };
-          end-of-line-diagnostics = "disable"; # TODO: Find a way to only show hints inline, long diagnostics become unreadable inline
-          inline-diagnostics = {
-            cursor-line = "disable";
-            other-lines = "disable";
-          };
-
-          soft-wrap = {
-            enable = true;
-          };
-
-          shell = [
-            "nu"
-            "-c"
-          ];
-
-        };
-
-        keys = {
-
-          insert = {
-            S-tab = "move_parent_node_start";
-          };
-
-          select = {
-            tab = "extend_parent_node_end";
-            S-tab = "extend_parent_node_start";
-
-          };
-          normal = {
-            tab = "move_parent_node_end";
-            S-tab = "move_parent_node_start";
-            S-l = ":buffer-next";
-            S-h = ":buffer-previous";
-            "C-l" = [
-              ":write-all"
-              ":run-shell-command zellij run --in-place -c -- lazygit -p %sh{dirname %{buffer_name}}"
-              ":redraw"
-              ":reload-all"
-            ];
-            space = {
-              i = {
-                c = ":toggle inline-diagnostics.cursor-line hint disable";
-                e = ":toggle end-of-line-diagnostics warning disable";
-                o = ":toggle inline-diagnostics.other-lines error disable";
-
-              };
-              # t = {
-              #   "1" = ":theme ${config.programs.darkMode.apps.helix.dark}";
-              #   "2" = ":theme ${config.programs.darkMode.apps.helix.light}";
-
-              # };
-
-              B = ''
-                :echo %sh{git blame -L %{cursor_line},+1 %{buffer_name}}
-              '';
-              N = ":run-shell-command ${./helix-copy-filename.nu} %{buffer_name}";
-              L = ":echo %sh{${./helix-repo-link.nu} %{buffer_name} %{cursor_line}}";
-            };
-          };
-        };
-      };
 
       languages =
         let
@@ -127,6 +132,7 @@ in
             }
             // cleanup {
               inherit (lang) scope roots;
+              auto-pairs = lang.autoPairs;
               grammar = if lang.grammar != null then lang.grammar.name else null;
               formatter =
                 if lang.formatter != null then
@@ -208,7 +214,21 @@ in
           ) lang.queries
         ) languagesWithQueries;
       in
-      grammarFiles // queryFiles;
+      grammarFiles
+      // queryFiles
+      // {
+        "helix/config-dark.toml".source = darkConfig;
+        "helix/config-light.toml".source = lightConfig;
+      };
+
+    home.activation.helixConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+      mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "dark")
+      if [ "$mode" = "light" ]; then
+        install -m 644 ${lightConfig} "${config.xdg.configHome}/helix/config.toml"
+      else
+        install -m 644 ${darkConfig} "${config.xdg.configHome}/helix/config.toml"
+      fi
+    '';
 
     assertions =
       let

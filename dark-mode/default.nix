@@ -119,10 +119,11 @@ in
           script = ./kitty-theme.nu;
         };
 
-        # helix = {
-        #   dark = "everblush";
-        #   light = "eiffel";
-        # };
+        helix = {
+          dark = "papercolor-dark";
+          light = "papercolor-light";
+          script = ./helix-theme.nu;
+        };
 
         # neovim = {
         #   dark = "catppuccin-mocha";

@@ -37,6 +37,13 @@
       command = "marksman";
     };
   };
+  autoPairs = {
+    "(" = ")";
+    "{" = "}";
+    "[" = "]";
+    "\"" = "\"";
+    "'" = "'";
+  };
   additionalPackages = with pkgs; [
     zola
     presenterm

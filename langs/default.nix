@@ -346,6 +346,11 @@ let
           default = { };
           description = "Tree-sitter query files for Helix (e.g. { highlights = ./highlights.scm; })";
         };
+        autoPairs = lib.mkOption {
+          type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
+          default = null;
+          description = "Auto-pair characters for Helix. Null uses Helix defaults. Set to override (e.g. omit backtick for markdown).";
+        };
       };
 
       config.queries = lib.mkIf (config.queriesPath != null) (
