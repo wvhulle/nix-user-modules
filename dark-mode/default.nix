@@ -12,16 +12,21 @@ let
     options = {
       dark = lib.mkOption {
         type = lib.types.str;
-        description = "Theme name for dark mode";
+        description = "Theme name for dark mode (passed as first arg to script)";
       };
       light = lib.mkOption {
         type = lib.types.str;
-        description = "Theme name for light mode";
+        description = "Theme name for light mode (passed as first arg to script)";
       };
       script = lib.mkOption {
         type = lib.types.nullOr lib.types.path;
         default = null;
         description = "Path to the theme switching script";
+      };
+      scriptArgs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        description = "Extra arguments passed after theme and mode";
       };
     };
   };
@@ -45,13 +50,14 @@ let
         "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
         "${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}"
       ];
+      extraArgs = lib.concatMapStringsSep " " lib.escapeShellArg app.scriptArgs;
     in
     pkgs.writeShellScript "theme-${name}-${mode}" (
       if !builtins.isNull app.script then
         ''
           export PATH="${scriptPath}:$PATH"
           export XDG_DATA_DIRS="${xdgDataDirs}"
-          ${app.script} '${theme}' ${mode}
+          ${app.script} '${theme}' ${mode} ${extraArgs}
         ''
       else
         ""
@@ -85,35 +91,13 @@ in
     apps = lib.mkOption {
       type = lightDarkAppSet;
       default = {
-        # gtk = {
-        #   dark = "Breeze-Dark";
-        #   light = "Breeze";
-        #   script = ./gtk-theme.nu;
-        # };
-
         plasma = {
-          # Use Stylix-generated themes from plasma-extended module
-          # These are generated from base16 schemes in ~/.local/share/color-schemes/
           dark = "stylix-dark";
           light = "stylix-light";
           script = ./plasma-theme.nu;
         };
 
-        # konsole = {
-        #   dark = "Dark";
-        #   light = "Light";
-        #   script = ./konsole-theme.nu;
-        # };
-
-        # cursor = {
-        #   dark = "Breeze_Snow";
-        #   light = "Breeze_Light";
-        #   script = ./cursor-theme.nu;
-        # };
-
         kitty = {
-          # Use Stylix-generated themes from kitty-extended module
-          # These are generated from base16 schemes in ~/.config/kitty/themes/
           dark = "stylix-dark";
           light = "stylix-light";
           script = ./kitty-theme.nu;
@@ -122,39 +106,21 @@ in
         helix = {
           dark = "papercolor-dark";
           light = "papercolor-light";
-          script = ./helix-theme.nu;
+          script = ./copy-config-theme.nu;
+          scriptArgs = [
+            "helix"
+            "config.toml"
+          ];
         };
 
-        # neovim = {
-        #   dark = "catppuccin-mocha";
-        #   light = "catppuccin-latte";
-        #   script = ./neovim-theme.nu;
-        # };
-
-        # claude-code = {
-        #   dark = "dark";
-        #   light = "light";
-        #   script = ./claude-code-theme.nu;
-        # };
-
-        # vscode = {
-        #   dark = "GitHub Dark";
-        #   light = "GitHub Light";
-        # };
-
-        # zed = {
-        #   dark = "One Dark";
-        #   light = "One Light";
-        #   # No script needed - Zed uses theme.mode = "system" to follow OS preference
-        # };
-
         zellij = {
-          # Use Stylix-generated themes from zellij-extended module
-          # Note: Zellij doesn't support runtime theme switching for existing sessions
-          # The script updates a marker file; new sessions will use the correct theme
           dark = "stylix-dark";
           light = "stylix-light";
-          script = ./zellij-theme.nu;
+          script = ./copy-config-theme.nu;
+          scriptArgs = [
+            "zellij"
+            "config.kdl"
+          ];
         };
       };
       description = "Applications with dark/light theme support";
