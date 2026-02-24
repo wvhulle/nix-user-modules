@@ -170,11 +170,12 @@
   };
 
   additionalPaths = [ "${config.home.homeDirectory}/.cargo/bin" ];
-  additionalPackages = [
-    pkgs.taplo
-    pkgs.rustup
-    pkgs.openssl
-    pkgs.pkg-config
-    pkgs.cargo-seek
+  additionalPackages = with pkgs; [
+    openssl
+    taplo
+    rustup
+    openssl
+    pkg-config
+    cargo-seek
   ];
 }

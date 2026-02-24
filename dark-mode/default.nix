@@ -171,14 +171,14 @@ in
       lightModeScripts = lib.mapAttrs (name: app: makeThemeScript name app "light" app.light) cfg.apps;
     };
 
-    # Apply theme when Stylix color schemes change
-    xdg.dataFile."color-schemes/stylix-dark.colors".onChange = ''
-      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
-      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
-    '';
-    xdg.dataFile."color-schemes/stylix-light.colors".onChange = ''
-      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
-      ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
-    '';
+    # # Apply theme when Stylix color schemes change
+    # xdg.dataFile."color-schemes/stylix-dark.colors".onChange = ''
+    #   ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    #   ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    # '';
+    # xdg.dataFile."color-schemes/stylix-light.colors".onChange = ''
+    #   ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    #   ${pkgs.darkman}/bin/darkman toggle 2>/dev/null || true
+    # '';
   };
 }

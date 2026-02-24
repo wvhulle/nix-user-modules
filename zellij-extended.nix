@@ -85,11 +85,11 @@ in
       "zellij/config-light.kdl".source = lightConfig;
     };
 
-    home.activation.zellijConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
-      config_dir="${config.xdg.configHome}/zellij"
-      mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "dark")
-      cp "$config_dir/config-$mode.kdl" "$config_dir/config.kdl"
-    '';
+    # home.activation.zellijConfig = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+    #   config_dir="${config.xdg.configHome}/zellij"
+    #   mode=$(${pkgs.darkman}/bin/darkman get 2>/dev/null || echo "dark")
+    #   cp "$config_dir/config-$mode.kdl" "$config_dir/config.kdl"
+    # '';
 
     programs.zellij = {
       # enable = true;
